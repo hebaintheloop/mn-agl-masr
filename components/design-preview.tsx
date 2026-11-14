@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   ArrowUpLeft,
   ArrowUpRight,
-  ArrowLeft,
   CalendarDays,
   MapPin,
   Sun,
@@ -30,7 +29,7 @@ const examples: EventItem[] = [
     title: "يوم العلوم المفتوح",
     description:
       "يوم نتعرف فيه على أفكار ومشروعات طلاب كليتنا، ونشارك في تنظيمه معًا.",
-    location: "كلية العلوم · ساحة الكلية",
+    location: "كلية العلوم، جامعة القاهرة، ساحة الكلية",
     start_at: "2026-12-05T08:00:00+02:00",
     end_at: "2026-12-05T16:00:00+02:00",
     points: 20,
@@ -40,7 +39,7 @@ const examples: EventItem[] = [
     id: "preview-workshop",
     title: "ورشة التصوير بالموبايل",
     description: "نتعلم أساسيات الصورة، ونجرّبها مع بعض في جولة داخل الكلية.",
-    location: "كلية العلوم · قاعة الأنشطة",
+    location: "كلية العلوم، جامعة القاهرة، قاعة الأنشطة",
     start_at: "2026-12-08T12:00:00+02:00",
     end_at: "2026-12-08T15:00:00+02:00",
     points: 10,
@@ -51,7 +50,7 @@ const examples: EventItem[] = [
     title: "نجهّز معرض الكلية، سوا",
     description:
       "محتاجين إيدك في التحضير والتنظيم. المشاركة في الفعاليات الأكثر احتياجًا تمنحك نقاطًا إضافية.",
-    location: "كلية العلوم · مدخل المعرض",
+    location: "كلية العلوم، جامعة القاهرة، مدخل المعرض",
     start_at: "2026-12-10T09:00:00+02:00",
     end_at: "2026-12-10T15:00:00+02:00",
     points: 30,
@@ -84,6 +83,8 @@ export default function DesignPreview() {
   const t = (ar: string, english: string) => (en ? english : ar);
   useEffect(() => {
     setDark(document.documentElement.dataset.theme === "dark");
+    if (new URLSearchParams(location.search).get("view") === "feed")
+      setTab("feed");
     fetch("/api/action")
       .then((r) => r.json())
       .then((d) => {
@@ -161,6 +162,11 @@ export default function DesignPreview() {
   const Arrow = en ? ArrowUpRight : ArrowUpLeft;
   function navigate(next: string) {
     setTab(next);
+    history.replaceState(
+      null,
+      "",
+      next === "feed" ? "/design-preview?view=feed" : "/design-preview",
+    );
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   const cards = (items: EventItem[]) =>
@@ -187,12 +193,20 @@ export default function DesignPreview() {
             </small>
             <h3>{title(e)}</h3>
             <p>
-              {t("طلاب من أجل مصر", "Mn Agl Masr")} ·{" "}
-              {t("كلية العلوم", "Faculty of Science")}
+              {t("طلاب من أجل مصر", "Mn Agl Masr")},{" "}
+              {t(
+                "كلية العلوم، جامعة القاهرة",
+                "Faculty of Science, Cairo University",
+              )}
             </p>
             <p>
               <MapPin size={15} />
-              {sample ? t("كلية العلوم", "Faculty of Science") : e.location}
+              {sample
+                ? t(
+                    "كلية العلوم، جامعة القاهرة",
+                    "Faculty of Science, Cairo University",
+                  )
+                : e.location}
             </p>
             <span className="dp-points">
               +{e.points} {t("نقطة عند الحضور", "points for attending")}
@@ -216,8 +230,8 @@ export default function DesignPreview() {
     <div className={"dp " + (paused ? "dp-paused" : "")}>
       <div className="dp-preview-note">
         {t(
-          "معاينة تصميم · الفعاليات والصور أمثلة توضيحية",
-          "Design preview · Events and photos are illustrative examples",
+          "معاينة تصميم, الفعاليات والصور أمثلة توضيحية",
+          "Design preview, Events and photos are illustrative examples",
         )}
         <a href="/">
           {t("العودة للتطبيق", "Back to app")}
@@ -226,13 +240,28 @@ export default function DesignPreview() {
       </div>
       <header className="dp-header">
         <button className="dp-wordmark" onClick={() => navigate("welcome")}>
-          من أجل مصر<small>{t("كلية العلوم", "Faculty of Science")}</small>
+          <img
+            className="dp-logo"
+            src="/assets/cairo-student-logo.jpg"
+            alt={t(
+              "شعار طلاب من أجل مصر، جامعة القاهرة",
+              "Students for Egypt, Cairo University logo",
+            )}
+            width={58}
+            height={58}
+          />
+          <span>
+            من أجل مصر
+            <small>
+              {t(
+                "كلية العلوم، جامعة القاهرة",
+                "Faculty of Science, Cairo University",
+              )}
+            </small>
+          </span>
         </button>
         <span className="dp-header-note">
-          {t(
-            "(مجتمع طلابي، وأثر بيكبر)",
-            "(A student community. A growing impact.)",
-          )}
+          {t("(وعي، مهارات، مشاركة)", "(Awareness, skills, participation)")}
         </span>
         <nav>
           <button
@@ -268,14 +297,16 @@ export default function DesignPreview() {
           <section className="dp-intro">
             <p className="dp-welcome">
               {t(
-                "أهلًا بك في من أجل مصر · كلية العلوم",
-                "Welcome to Mn Agl Masr · Faculty of Science",
+                "أهلًا بك في من أجل مصر، كلية العلوم، جامعة القاهرة",
+                "Welcome to Mn Agl Masr, Faculty of Science, Cairo University",
               )}
             </p>
             <h1>
-              {t("مكانك بيننا.", "You belong here.")}
+              {t("نتعلّم، نشارك،", "Learn, take part,")}
               <br />
-              {t("وأثرك يبدأ هنا.", "Make your mark.")}
+              <span className="dp-headline-accent">
+                {t("ونصنع أثرًا", "make an impact")}
+              </span>
             </h1>
             <div className="dp-collage">
               <span className="dp-collage-note note-one">
@@ -378,10 +409,7 @@ export default function DesignPreview() {
             </div>
             <div className="dp-intro-bottom">
               <p>
-                {t(
-                  "نشارك. نتعلّم. ونسيب أثر.",
-                  "Take part. Learn together. Leave a mark.",
-                )}
+                {t("وعي، مهارات، مشاركة", "Awareness, skills, participation")}
               </p>
               <button className="dp-discover" onClick={() => navigate("feed")}>
                 {t("شوف الفعاليات", "Explore events")}
@@ -401,8 +429,8 @@ export default function DesignPreview() {
             <div>
               <p>
                 {t(
-                  "إحنا طلاب من أجل مصر بكلية العلوم. بنجمع أفكارنا وطاقتنا في فعاليات وأنشطة تطوعية، وندي لكل طالب مساحة يجرب، يتعلم، ويعمل حاجة تفرق.",
-                  "We are Mn Agl Masr students at the Faculty of Science. We bring our ideas and energy to events and volunteering, giving every student room to try, learn, and make a difference.",
+                  "إحنا طلاب من أجل مصر بكلية العلوم، جامعة القاهرة. بنجمع أفكارنا وطاقتنا في فعاليات وتدريبات وأنشطة تطوعية، عشان ننمّي مهاراتنا، ونوسّع وعينا، ونخدم مجتمعنا.",
+                  "We are Mn Agl Masr students at the Faculty of Science, Cairo University. Through events, training and volunteering, we develop our skills, broaden our awareness and contribute to our community.",
                 )}
               </p>
               <p className="dp-secondary">
@@ -439,8 +467,8 @@ export default function DesignPreview() {
             {sample && (
               <p className="dp-example-label">
                 {t(
-                  "أمثلة لعرض التصميم — ليست فعاليات معلنة",
-                  "Design examples — these are not announced events",
+                  "أمثلة لعرض التصميم - ليست فعاليات معلنة",
+                  "Design examples - these are not announced events",
                 )}
               </p>
             )}
@@ -501,8 +529,8 @@ export default function DesignPreview() {
           </div>
           <p className="dp-feed-intro">
             {t(
-              "طلاب من أجل مصر · كلية العلوم",
-              "Mn Agl Masr · Faculty of Science",
+              "طلاب من أجل مصر، كلية العلوم، جامعة القاهرة",
+              "Mn Agl Masr, Faculty of Science, Cairo University",
             )}
           </p>
           {sample && (
@@ -536,7 +564,13 @@ export default function DesignPreview() {
       )}
       <footer className="dp-footer">
         <span>
-          من أجل مصر <small>{t("كلية العلوم", "Faculty of Science")}</small>
+          من أجل مصر{" "}
+          <small>
+            {t(
+              "كلية العلوم، جامعة القاهرة",
+              "Faculty of Science, Cairo University",
+            )}
+          </small>
         </span>
         <button
           onClick={() => navigate(tab === "welcome" ? "feed" : "welcome")}
@@ -577,7 +611,10 @@ export default function DesignPreview() {
             <p className="dp-dialog-meta">
               <MapPin size={18} />
               {sample
-                ? t("كلية العلوم", "Faculty of Science")
+                ? t(
+                    "كلية العلوم، جامعة القاهرة",
+                    "Faculty of Science, Cairo University",
+                  )
                 : selected.location}
             </p>
             <p>{selected.description}</p>
