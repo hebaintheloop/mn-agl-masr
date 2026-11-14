@@ -42,4 +42,4 @@ Student codes now use seven digits with no separators. Existing profile codes we
 
 ## Design review
 
-`/design-preview` contains an isolated HISS-inspired welcome-page proposal and a Luma-style event feed. Illustrative photos/events are labelled; no sample events were inserted into the database. The public homepage remains available while the owner reviews the redesign.
+The owner approved the new design. The shared welcome page is now the production homepage, and its typography and red, black and white palette are used across events, registration, accounts, leader tools, attendance and dialogs. The squiggly arrow was removed. Status and points labels have opaque solid fills with contrasting text. `/design-preview` remains a separate review route, where illustrative events are labelled. The real homepage never falls back to demo events.

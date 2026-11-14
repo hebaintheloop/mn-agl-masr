@@ -1,9 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import {
-  ArrowUpLeft,
-  ArrowUpRight,
-  ArrowLeft,
   CalendarDays,
   MapPin,
   Sun,
@@ -17,11 +14,9 @@ import {
   LogOut,
   Trophy,
   LoaderCircle,
-  Pause,
-  Play,
   Download,
 } from "lucide-react";
-import HeroMedia from "./hero-media";
+import { CommunityExperience } from "./design-preview";
 type EventItem = {
   id: string;
   title: string;
@@ -67,6 +62,7 @@ async function api(
 }
 const date = (s: string, en: boolean) =>
   new Date(s).toLocaleDateString(en ? "en-GB" : "ar-EG", {
+    timeZone: "Africa/Cairo",
     day: "numeric",
     month: "long",
   });
@@ -81,6 +77,7 @@ export default function App() {
     [view, setView] = useState("home"),
     [auth, setAuth] = useState<string | null>(null),
     [me, setMe] = useState<Me | null>(null),
+    [authChecked, setAuthChecked] = useState(false),
     [events, setEvents] = useState<EventItem[]>([]),
     [news, setNews] = useState<
       { id: string; title: string; body: string; created_at: string }[]
@@ -90,7 +87,6 @@ export default function App() {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [recovery, setRecovery] = useState(""),
-    [paused, setPaused] = useState(false),
     [menu, setMenu] = useState(false),
     [rows, setRows] = useState<{ full_name: string; points: number }[]>([]),
     [creating, setCreating] = useState(false),
@@ -132,6 +128,8 @@ export default function App() {
       setMe(await api("me"));
     } catch {
       setMe(null);
+    } finally {
+      setAuthChecked(true);
     }
   };
   useEffect(() => {
@@ -255,7 +253,6 @@ export default function App() {
       );
     });
   }
-  const NavArrow = en ? ArrowUpRight : ArrowUpLeft;
   return (
     <>
       <header className="site-header">
@@ -265,9 +262,24 @@ export default function App() {
             onClick={() => go("home")}
             aria-label="Home"
           >
-            <span className="brand-symbol">م</span>
+            <img
+              className="app-logo"
+              src="/assets/cairo-student-logo.jpg"
+              width={58}
+              height={58}
+              alt={t(
+                "شعار طلاب من أجل مصر، جامعة القاهرة",
+                "Students for Egypt, Cairo University logo",
+              )}
+            />
             <span>
-              من أجل مصر<small>{t("كلية العلوم", "Faculty of Science")}</small>
+              من أجل مصر
+              <small>
+                {t(
+                  "كلية العلوم، جامعة القاهرة",
+                  "Faculty of Science, Cairo University",
+                )}
+              </small>
             </span>
           </button>
           <nav className={menu ? "open" : ""} aria-label="Main">
@@ -366,265 +378,35 @@ export default function App() {
           </button>
         </div>
       )}
-      <main>
+      <main className={view === "home" ? "home-main" : "workspace-main"}>
+        {["account", "leaderboard"].includes(view) && !authChecked && (
+          <section className="app-container narrow" role="status">
+            {t("جارٍ تحميل حسابك…", "Loading your account…")}
+          </section>
+        )}
+        {["account", "leaderboard"].includes(view) && authChecked && !me && (
+          <section className="app-container narrow">
+            <Empty
+              title={t("أهلًا بك في من أجل مصر", "Welcome to Mn Agl Masr")}
+              text={t("سجّل دخولك للمتابعة", "Log in to continue")}
+              action={() => setAuth("login")}
+              label={t("تسجيل الدخول", "Log in")}
+            />
+          </section>
+        )}
         {view === "home" && (
-          <>
-            <section className="hero">
-              <div className="hero-copy">
-                <div className="eyebrow">
-                  <span className="tiny-dot" />
-                  {t(
-                    "طلاب من أجل مصر · كلية العلوم",
-                    "Mn Agl Masr · Faculty of Science",
-                  )}
-                </div>
-                <h1>
-                  {t("أهلًا بك في", "Welcome to")}
-                  <br />
-                  <span>{t("من أجل مصر.", "Mn Agl Masr.")}</span>
-                </h1>
-                <p>
-                  {t(
-                    "هنا تبدأ حكايتك. مجتمع طلابي يجمعنا لنشارك، نتعلّم، ونترك أثرًا في كليتنا وخارجها.",
-                    "Your story starts here. A student community to take part, learn together, and make a difference in our faculty and beyond.",
-                  )}
-                </p>
-                <div className="hero-buttons">
-                  <button
-                    className="primary"
-                    onClick={() => (me ? go("events") : setAuth("signup"))}
-                  >
-                    {t("كن جزءًا من الحكاية", "Be part of the story")}
-                    <NavArrow size={18} />
-                  </button>
-                  <button className="text-btn" onClick={() => go("events")}>
-                    {t("اكتشف الفعاليات", "Explore events")}
-                    <ArrowLeft size={17} />
-                  </button>
-                </div>
-                <div className="hero-note">
-                  {t(
-                    "مساحة لكل طالب. وفرصة لكل بداية.",
-                    "Room for every student. A chance for every beginning.",
-                  )}
-                </div>
-              </div>
-              <HeroMedia
-                url={home.video_url}
-                poster={home.poster_url}
-                en={en}
-              />
-            </section>
-            <section className="about content-section">
-              <div className="section-kicker">
-                01 — {t("من نحن", "Who we are")}
-              </div>
-              <div>
-                <h2>
-                  {t(
-                    "من الكلية، تبدأ المشاركة.",
-                    "It starts here, at our faculty.",
-                  )}
-                </h2>
-                <p className="large-copy">
-                  {t(
-                    "نحن طلاب من أجل مصر بكلية العلوم. نجمع طاقتنا وأفكارنا في فعاليات وأنشطة تطوعية تمنح كل طالب مساحة يشارك فيها، يكتشف قدراته، ويتعرف على ناس تشبهه.",
-                    "We are Mn Agl Masr students at the Faculty of Science. We bring our energy and ideas to events and volunteering, giving every student room to contribute, discover their strengths, and meet their community.",
-                  )}
-                </p>
-              </div>
-            </section>
-            <section className="gallery-section">
-              <div className="gallery-heading">
-                <div className="section-kicker">
-                  02 — {t("حياة مليانة مشاركة", "A community in motion")}
-                </div>
-                <h2>{t("في كل لحظة، حكاية.", "Every moment has a story.")}</h2>
-                <p>
-                  {t(
-                    "تعلّم. شارك. قابل ناس جديدة.",
-                    "Learn. Take part. Meet new people.",
-                  )}
-                </p>
-                <button className="outline" onClick={() => setPaused(!paused)}>
-                  {paused ? <Play size={15} /> : <Pause size={15} />}{" "}
-                  {paused
-                    ? t("تشغيل الحركة", "Resume motion")
-                    : t("إيقاف الحركة", "Pause motion")}
-                </button>
-                <small className="media-note">
-                  {!home.gallery_urls?.length &&
-                    t(
-                      "صور توضيحية · صور فعالياتنا قريبًا",
-                      "Illustrative images · Our event photos coming soon",
-                    )}
-                </small>
-              </div>
-              <div
-                className={"gallery-window " + (paused ? "paused" : "")}
-                aria-label={t("معرض المجتمع", "Community gallery")}
-              >
-                {[0, 1, 2].map((col) => (
-                  <div className={"gallery-track col-" + col} key={col}>
-                    {[0, 1].map((copy) => (
-                      <div
-                        className="gallery-sequence"
-                        key={copy}
-                        aria-hidden={copy === 1}
-                      >
-                        {["workshop", "community", "campus"].map((p, i) => (
-                          <img
-                            key={p}
-                            src={
-                              home.gallery_urls?.length
-                                ? home.gallery_urls[
-                                    (i + col) % home.gallery_urls.length
-                                  ]
-                                : "/assets/" +
-                                  ["workshop", "community", "campus"][
-                                    (i + col) % 3
-                                  ] +
-                                  ".jpg"
-                            }
-                            alt=""
-                            loading="lazy"
-                          />
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </section>
-            <section className="content-section latest">
-              <div className="section-top">
-                <div>
-                  <div className="section-kicker">
-                    03 — {t("نلتقي قريبًا", "See you soon")}
-                  </div>
-                  <h2>{t("الفعاليات القادمة", "Coming up")}</h2>
-                </div>
-                <button className="text-btn" onClick={() => go("events")}>
-                  {t("كل الفعاليات", "All events")}
-                  <NavArrow size={17} />
-                </button>
-              </div>
-              {loadFailed ? (
-                <Empty
-                  title={t("تعذّر تحميل الفعاليات", "Unable to load events")}
-                  text={t(
-                    "حاول مرة أخرى بعد قليل.",
-                    "Please try again shortly.",
-                  )}
-                  action={() => refresh().catch((e) => setError(e.message))}
-                  label={t("حاول مجددًا", "Retry")}
-                />
-              ) : events.filter((e) => new Date(e.end_at) > new Date())
-                  .length ? (
-                <div className="event-grid">
-                  {events
-                    .filter((e) => new Date(e.end_at) > new Date())
-                    .slice(0, 3)
-                    .map((e) => (
-                      <EventCard
-                        key={e.id}
-                        e={e}
-                        en={en}
-                        onClick={() => openEvent(e)}
-                      />
-                    ))}
-                </div>
-              ) : (
-                <Empty
-                  title={t(
-                    "حكايتنا القادمة لسه بتتحضّر.",
-                    "Our next chapter is taking shape.",
-                  )}
-                  text={t(
-                    "تابعنا هنا لمعرفة الفعاليات الجديدة بمجرد الإعلان عنها.",
-                    "New events will appear here as soon as they are announced.",
-                  )}
-                />
-              )}
-            </section>
-            <section className="points-story content-section">
-              <div className="points-visual">
-                <span className="points-number">+{t("نقاط", "points")}</span>
-                <div className="points-line" />
-                <p>{t("مشاركتك بتفرق", "Your contribution matters")}</p>
-                <Trophy size={40} strokeWidth={1.2} />
-              </div>
-              <div>
-                <div className="section-kicker">
-                  04 — {t("طريقة جديدة للمشاركة", "A new way to take part")}
-                </div>
-                <h2>
-                  {t("كل مشاركة،", "Every contribution.")}
-                  <br />
-                  {t("تفتح لك فرصة.", "Another opportunity.")}
-                </h2>
-                <p>
-                  {t(
-                    "كل ما تتطوع أكتر، تجمع نقاط أكتر وتقرّب من فرص حصرية. والفعاليات اللي محتاجة مشاركتك أكتر، بتديك نقاط إضافية على لوحة المتصدرين.",
-                    "The more you volunteer, the more points you earn and the closer you get to exclusive opportunities. Events that need your help most reward you with extra leaderboard points.",
-                  )}
-                </p>
-                <p className="muted">
-                  {t(
-                    "عندك سكشن أو محاضرة وقت الفعالية؟ اطلب عذرًا رسميًا عند التسجيل. طلبات الأعذار والتسهيلات مقبولة تلقائيًا لكل فعالية.",
-                    "Have a section or lecture during an event? Request an official academic excuse when registering. Excuse and accommodation requests are accepted automatically for each event.",
-                  )}
-                </p>
-              </div>
-            </section>
-            <section className="content-section news-section">
-              <div className="section-top">
-                <div>
-                  <div className="section-kicker">
-                    05 — {t("آخر الأخبار", "Latest news")}
-                  </div>
-                  <h2>{t("جديد من أجل مصر", "From our community")}</h2>
-                </div>
-              </div>
-              {news.length ? (
-                <div className="news-grid">
-                  {news.map((n) => (
-                    <article key={n.id}>
-                      <small>{date(n.created_at, en)}</small>
-                      <h3>{n.title}</h3>
-                      <p>{n.body}</p>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <p className="muted">
-                  {t(
-                    "أخبار الكلية والمبادرات الجديدة هتلاقيها هنا. تابعنا قريبًا.",
-                    "Faculty updates and new initiatives will be shared here. Check back soon.",
-                  )}
-                </p>
-              )}
-            </section>
-            <section className="join-section">
-              <div className="eyebrow">
-                {t("مكانك موجود بيننا", "There is a place for you here")}
-              </div>
-              <h2>{t("يلا نبدأ، سوا.", "Let’s begin, together.")}</h2>
-              <p>
-                {t(
-                  "انضم لطلاب من أجل مصر بكلية العلوم اليوم.",
-                  "Join Mn Agl Masr students at the Faculty of Science today.",
-                )}
-              </p>
-              <button
-                className="primary"
-                onClick={() => (me ? go("events") : setAuth("signup"))}
-              >
-                {t("انضم إلينا", "Join us today")}
-                <NavArrow size={18} />
-              </button>
-            </section>
-          </>
+          <CommunityExperience
+            embedded
+            live
+            language={en}
+            content={{ home, events, news }}
+            loading={!initialized.current && !loadFailed}
+            loadError={loadFailed}
+            onRetry={() => refresh().catch(() => setLoadFailed(true))}
+            onNavigate={go}
+            onEvent={openEvent}
+            onJoin={() => (me ? go("events") : setAuth("signup"))}
+          />
         )}
         {view === "events" && (
           <section className="app-container">
@@ -673,7 +455,7 @@ export default function App() {
                         <small>
                           {new Date(e.start_at).toLocaleDateString(
                             en ? "en" : "ar",
-                            { weekday: "long" },
+                            { weekday: "long", timeZone: "Africa/Cairo" },
                           )}
                         </small>
                       </time>
@@ -707,12 +489,22 @@ export default function App() {
                 {selected.cover_url ? (
                   <img src={selected.cover_url} alt="" />
                 ) : (
-                  <div className="cover-letter">
-                    {selected.title}
+                  <div className="cover-letter" aria-hidden="true">
+                    <img
+                      className="cover-badge"
+                      src="/assets/cairo-student-logo.jpg"
+                      alt=""
+                      width={52}
+                      height={52}
+                    />
+                    <h2>{selected.title}</h2>
                     <span>
-                      من أجل مصر
+                      {t("طلاب من أجل مصر", "Mn Agl Masr")}
                       <br />
-                      كلية العلوم
+                      {t(
+                        "كلية العلوم، جامعة القاهرة",
+                        "Faculty of Science, Cairo University",
+                      )}
                     </span>
                   </div>
                 )}
@@ -720,8 +512,8 @@ export default function App() {
               <p className="muted">{t("تنظيم", "Presented by")}</p>
               <h3>
                 {t(
-                  "طلاب من أجل مصر · كلية العلوم",
-                  "Mn Agl Masr · Faculty of Science",
+                  "طلاب من أجل مصر, كلية العلوم، جامعة القاهرة",
+                  "Mn Agl Masr, Faculty of Science, Cairo University",
                 )}
               </h3>
             </aside>
@@ -738,7 +530,11 @@ export default function App() {
                   <small>
                     {new Date(selected.start_at).toLocaleTimeString(
                       en ? "en-GB" : "ar-EG",
-                      { hour: "2-digit", minute: "2-digit" },
+                      {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZone: "Africa/Cairo",
+                      },
                     )}
                   </small>
                 </div>
@@ -749,10 +545,10 @@ export default function App() {
               </div>
               <div className="event-meta">
                 <Trophy />
-                <div>
+                <span className="status-label status-points">
                   {selected.points}{" "}
                   {t("نقطة عند الحضور", "points for attending")}
-                </div>
+                </span>
               </div>
               <div className="registration-card">
                 <h3>
@@ -762,6 +558,14 @@ export default function App() {
                     ? t("أنت مشارك", "You’re going")
                     : t("شارك في الفعالية", "Join this event")}
                 </h3>
+                {me?.registrations.some(
+                  (r) => r.event_id === selected.id && r.going,
+                ) && (
+                  <span className="status-label status-confirmed registration-status">
+                    <Check size={14} />
+                    {t("مشاركة مؤكدة", "Registration confirmed")}
+                  </span>
+                )}
                 {me ? (
                   <form
                     onSubmit={(e) => {
@@ -819,6 +623,13 @@ export default function App() {
                         )}
                       />
                     </label>
+                    <span className="status-label status-confirmed request-status">
+                      <Check size={14} />
+                      {t(
+                        "الطلبات مقبولة تلقائيًا",
+                        "Requests automatically accepted",
+                      )}
+                    </span>
                     <p className="small muted">
                       {t(
                         "طلباتك تخص هذه الفعالية فقط، وتُقبل تلقائيًا.",
@@ -967,26 +778,31 @@ export default function App() {
                                 {r.accommodation}
                               </p>
                             )}
-                            <small className="success">
+                            <small className="status-label status-confirmed">
                               {t("الطلبات مقبولة", "Requests accepted")}
                             </small>
-                            <button
-                              className="small-btn"
-                              disabled={r.present || busy}
-                              onClick={() =>
-                                run(async () => {
-                                  await api("manual", {
-                                    event_id: selected.id,
-                                    user_id: r.user_id,
-                                  });
-                                  await loadAttendees();
-                                })
-                              }
-                            >
-                              {r.present
-                                ? t("حاضر", "Present")
-                                : t("تسجيل الحضور", "Check in")}
-                            </button>
+                            {r.present ? (
+                              <span className="status-label status-confirmed attendance-present">
+                                <Check size={14} />
+                                {t("حاضر", "Present")}
+                              </span>
+                            ) : (
+                              <button
+                                className="small-btn"
+                                disabled={busy}
+                                onClick={() =>
+                                  run(async () => {
+                                    await api("manual", {
+                                      event_id: selected.id,
+                                      user_id: r.user_id,
+                                    });
+                                    await loadAttendees();
+                                  })
+                                }
+                              >
+                                {t("تسجيل الحضور", "Check in")}
+                              </button>
+                            )}
                           </article>
                         ))}
                     </>
@@ -996,7 +812,7 @@ export default function App() {
             </div>
           </section>
         )}
-        {view === "leaderboard" && (
+        {view === "leaderboard" && me && (
           <section className="app-container narrow">
             <div className="page-heading">
               <div>
@@ -1059,6 +875,11 @@ export default function App() {
               </button>
             </div>
             <div className="account-summary">
+              {me.profile.role === "leader" && (
+                <span className="status-label status-confirmed account-role">
+                  {t("قائد الفريق", "Team leader")}
+                </span>
+              )}
               <h2>{me.profile.full_name}</h2>
               <p dir="ltr">{me.profile.student_code}</p>
               <div className="account-points">
@@ -1225,8 +1046,8 @@ export default function App() {
                   </label>
                   <label>
                     {t(
-                      "صور المعرض — رابط في كل سطر",
-                      "Gallery images — one URL per line",
+                      "صور المعرض - رابط في كل سطر",
+                      "Gallery images - one URL per line",
                     )}
                     <textarea
                       name="gallery_urls"
@@ -1241,7 +1062,7 @@ export default function App() {
             )}
           </section>
         )}
-        {view === "scan" && (
+        {view === "scan" && authChecked && (
           <section className="app-container narrow">
             <h1>{t("تسجيل الحضور", "Check in")}</h1>
             <p className="muted">
@@ -1279,7 +1100,13 @@ export default function App() {
       </main>
       <footer>
         <div className="footer-brand">
-          من أجل مصر <small>{t("كلية العلوم", "Faculty of Science")}</small>
+          من أجل مصر{" "}
+          <small>
+            {t(
+              "كلية العلوم، جامعة القاهرة",
+              "Faculty of Science, Cairo University",
+            )}
+          </small>
         </div>
         <p>
           {t(
@@ -1314,7 +1141,16 @@ export default function App() {
             >
               <X size={20} />
             </button>
-            <div className="brand-symbol">م</div>
+            <img
+              className="app-logo auth-logo"
+              src="/assets/cairo-student-logo.jpg"
+              width={58}
+              height={58}
+              alt={t(
+                "شعار طلاب من أجل مصر، جامعة القاهرة",
+                "Students for Egypt, Cairo University logo",
+              )}
+            />
             <h2 id="auth-title">
               {auth === "signup"
                 ? t("بداية حكايتك", "Your story starts here")
@@ -1324,8 +1160,8 @@ export default function App() {
             </h2>
             <p className="muted">
               {t(
-                "طلاب من أجل مصر · كلية العلوم",
-                "Mn Agl Masr · Faculty of Science",
+                "طلاب من أجل مصر, كلية العلوم، جامعة القاهرة",
+                "Mn Agl Masr, Faculty of Science, Cairo University",
               )}
             </p>
             <form onSubmit={register}>
@@ -1680,11 +1516,11 @@ function EventCard({
           {e.location}
         </p>
         <div className="event-card-bottom">
-          <span>
+          <span className="status-label status-points">
             {e.points} {en ? "points" : "نقطة"}
           </span>
           {registered && (
-            <span className="success">
+            <span className="status-label status-confirmed">
               <Check size={14} />
               {en ? "You’re going" : "أنت مشارك"}
             </span>
@@ -1695,13 +1531,11 @@ function EventCard({
         {e.cover_url ? (
           <img src={e.cover_url} alt="" />
         ) : (
-          <span>
-            من
-            <br />
-            أجل
-            <br />
-            مصر
-          </span>
+          <img
+            className="event-logo"
+            src="/assets/cairo-student-logo.jpg"
+            alt=""
+          />
         )}
       </div>
     </button>

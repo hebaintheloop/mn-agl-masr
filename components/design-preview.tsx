@@ -62,27 +62,69 @@ const exampleTitles = [
   "Phone Photography Workshop",
   "Let’s prepare the faculty exhibition",
 ];
+type CommunityProps = {
+  embedded?: boolean;
+  live?: boolean;
+  language?: boolean;
+  content?: {
+    events: EventItem[];
+    home: { video_url?: string; poster_url?: string; gallery_urls?: string[] };
+    news: { id: string; title: string; body: string }[];
+  };
+  loading?: boolean;
+  loadError?: boolean;
+  onRetry?: () => void;
+  onNavigate?: (view: string) => void;
+  onEvent?: (event: EventItem) => void;
+  onJoin?: () => void;
+};
 export default function DesignPreview() {
-  const [en, setEn] = useState(false),
+  return <CommunityExperience />;
+}
+export function CommunityExperience({
+  embedded = false,
+  live = false,
+  language,
+  content,
+  loading = false,
+  loadError = false,
+  onRetry,
+  onNavigate,
+  onEvent,
+  onJoin,
+}: CommunityProps) {
+  const [localEn, setEn] = useState(false),
     [dark, setDark] = useState(false),
     [tab, setTab] = useState("welcome"),
     [paused, setPaused] = useState(false),
     [videoFailed, setVideoFailed] = useState(false),
     [past, setPast] = useState(false),
-    [events, setEvents] = useState<EventItem[]>([]),
+    [fetchedEvents, setEvents] = useState<EventItem[]>([]),
     [selected, setSelected] = useState<EventItem | null>(null),
-    [home, setHome] = useState<{
+    [fetchedHome, setHome] = useState<{
       video_url?: string;
       poster_url?: string;
       gallery_urls?: string[];
     }>({}),
-    [news, setNews] = useState<{ title: string; body: string; id: string }[]>(
-      [],
-    );
+    [fetchedNews, setNews] = useState<
+      { title: string; body: string; id: string }[]
+    >([]);
   const video = useRef<HTMLVideoElement>(null);
+  const en = language ?? localEn;
+  const events = content?.events ?? fetchedEvents;
+  const home = content?.home ?? fetchedHome;
+  const news = content?.news ?? fetchedNews;
+  const ContentTag = embedded ? "section" : "main";
+  function join(event: React.MouseEvent<HTMLAnchorElement>) {
+    if (onJoin) {
+      event.preventDefault();
+      onJoin();
+    }
+  }
   const t = (ar: string, english: string) => (en ? english : ar);
   useEffect(() => {
     setDark(document.documentElement.dataset.theme === "dark");
+    if (embedded) return;
     if (new URLSearchParams(location.search).get("view") === "feed")
       setTab("feed");
     fetch("/api/action")
@@ -93,7 +135,7 @@ export default function DesignPreview() {
         setNews(d.news || []);
       })
       .catch(() => {});
-  }, []);
+  }, [embedded]);
   useEffect(() => {
     document.documentElement.dir = en ? "ltr" : "rtl";
     document.documentElement.lang = en ? "en" : "ar";
@@ -141,7 +183,7 @@ export default function DesignPreview() {
       previous?.focus();
     };
   }, [selected]);
-  const sample = !events.length;
+  const sample = !live && !events.length;
   const list = sample ? examples : events;
   const shown = list.filter((e) =>
     past ? new Date(e.end_at) < new Date() : new Date(e.end_at) >= new Date(),
@@ -161,6 +203,10 @@ export default function DesignPreview() {
     });
   const Arrow = en ? ArrowUpRight : ArrowUpLeft;
   function navigate(next: string) {
+    if (embedded && onNavigate) {
+      onNavigate(next === "feed" ? "events" : "home");
+      return;
+    }
     setTab(next);
     history.replaceState(
       null,
@@ -182,7 +228,10 @@ export default function DesignPreview() {
           </small>
         </time>
         <span className="dp-timeline-dot" />
-        <button className="dp-event" onClick={() => setSelected(e)}>
+        <button
+          className="dp-event"
+          onClick={() => (onEvent ? onEvent(e) : setSelected(e))}
+        >
           <div className="dp-event-copy">
             <small>
               {new Date(e.start_at).toLocaleTimeString(en ? "en-GB" : "ar-EG", {
@@ -227,73 +276,83 @@ export default function DesignPreview() {
       </div>
     ));
   return (
-    <div className={"dp " + (paused ? "dp-paused" : "")}>
-      <div className="dp-preview-note">
-        {t(
-          "معاينة تصميم, الفعاليات والصور أمثلة توضيحية",
-          "Design preview, Events and photos are illustrative examples",
-        )}
-        <a href="/">
-          {t("العودة للتطبيق", "Back to app")}
-          <Arrow size={12} />
-        </a>
-      </div>
-      <header className="dp-header">
-        <button className="dp-wordmark" onClick={() => navigate("welcome")}>
-          <img
-            className="dp-logo"
-            src="/assets/cairo-student-logo.jpg"
-            alt={t(
-              "شعار طلاب من أجل مصر، جامعة القاهرة",
-              "Students for Egypt, Cairo University logo",
-            )}
-            width={58}
-            height={58}
-          />
-          <span>
-            من أجل مصر
-            <small>
-              {t(
-                "كلية العلوم، جامعة القاهرة",
-                "Faculty of Science, Cairo University",
-              )}
-            </small>
-          </span>
-        </button>
-        <span className="dp-header-note">
-          {t("(وعي، مهارات، مشاركة)", "(Awareness, skills, participation)")}
-        </span>
-        <nav>
-          <button
-            className={tab === "feed" ? "is-active" : ""}
-            onClick={() => navigate("feed")}
-          >
-            {t("الفعاليات", "Events")}
-          </button>
-          <a href="/?view=leaderboard">{t("المتصدرون", "Leaderboard")}</a>
-          <button
-            className="dp-icon"
-            aria-label="Toggle theme"
-            onClick={() => {
-              const next = !dark;
-              setDark(next);
-              document.documentElement.dataset.theme = next ? "dark" : "light";
-              localStorage.setItem("mam-theme", next ? "dark" : "light");
-            }}
-          >
-            {dark ? <Sun size={17} /> : <Moon size={17} />}
-          </button>
-          <button className="dp-language" onClick={() => setEn(!en)}>
-            {en ? "عربي" : "EN"}
-          </button>
-          <a className="dp-join" href="/?join=1">
-            {t("انضم إلينا", "Join us")}
-            <Arrow size={15} />
+    <div
+      className={
+        "dp " + (embedded ? "dp-embedded " : "") + (paused ? "dp-paused" : "")
+      }
+    >
+      {!live && (
+        <div className="dp-preview-note">
+          {t(
+            "معاينة تصميم, الفعاليات والصور أمثلة توضيحية",
+            "Design preview, Events and photos are illustrative examples",
+          )}
+          <a href="/">
+            {t("العودة للتطبيق", "Back to app")}
+            <Arrow size={12} />
           </a>
-        </nav>
-      </header>
+        </div>
+      )}
+      {!embedded && (
+        <header className="dp-header">
+          <button className="dp-wordmark" onClick={() => navigate("welcome")}>
+            <img
+              className="dp-logo"
+              src="/assets/cairo-student-logo.jpg"
+              alt={t(
+                "شعار طلاب من أجل مصر، جامعة القاهرة",
+                "Students for Egypt, Cairo University logo",
+              )}
+              width={58}
+              height={58}
+            />
+            <span>
+              من أجل مصر
+              <small>
+                {t(
+                  "كلية العلوم، جامعة القاهرة",
+                  "Faculty of Science, Cairo University",
+                )}
+              </small>
+            </span>
+          </button>
+          <span className="dp-header-note">
+            {t("(وعي، مهارات، مشاركة)", "(Awareness, skills, participation)")}
+          </span>
+          <nav>
+            <button
+              className={tab === "feed" ? "is-active" : ""}
+              onClick={() => navigate("feed")}
+            >
+              {t("الفعاليات", "Events")}
+            </button>
+            <a href="/?view=leaderboard">{t("المتصدرون", "Leaderboard")}</a>
+            <button
+              className="dp-icon"
+              aria-label="Toggle theme"
+              onClick={() => {
+                const next = !dark;
+                setDark(next);
+                document.documentElement.dataset.theme = next
+                  ? "dark"
+                  : "light";
+                localStorage.setItem("mam-theme", next ? "dark" : "light");
+              }}
+            >
+              {dark ? <Sun size={17} /> : <Moon size={17} />}
+            </button>
+            <button className="dp-language" onClick={() => setEn(!en)}>
+              {en ? "عربي" : "EN"}
+            </button>
+            <a className="dp-join" href="/?join=1" onClick={join}>
+              {t("انضم إلينا", "Join us")}
+              <Arrow size={15} />
+            </a>
+          </nav>
+        </header>
+      )}
       {tab === "welcome" ? (
-        <main>
+        <ContentTag>
           <section className="dp-intro">
             <p className="dp-welcome">
               {t(
@@ -314,19 +373,6 @@ export default function DesignPreview() {
                 <br />
                 {t("وحكايات أكتر.", "more stories.")}
               </span>
-              <svg
-                className="dp-drawn-arrow"
-                viewBox="0 0 130 80"
-                fill="none"
-                aria-hidden="true"
-              >
-                <path
-                  d="M3 9C48 2 31 67 111 56M93 40l24 16-20 17"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                />
-              </svg>
               <figure className="dp-photo photo-one">
                 <img
                   src={img(0)}
@@ -407,6 +453,14 @@ export default function DesignPreview() {
                 {paused ? <Play size={14} /> : <Pause size={14} />}
               </button>
             </div>
+            {live && (home.gallery_urls?.length || 0) < 3 && (
+              <p className="dp-media-note">
+                {t(
+                  "صور توضيحية، صور فعالياتنا قريبًا",
+                  "Illustrative photos, our faculty event photos coming soon",
+                )}
+              </p>
+            )}
             <div className="dp-intro-bottom">
               <p>
                 {t("وعي، مهارات، مشاركة", "Awareness, skills, participation")}
@@ -439,7 +493,7 @@ export default function DesignPreview() {
                   "The more you volunteer, the more points you earn and the closer you get to exclusive opportunities. Events that need you most reward you with extra points.",
                 )}
               </p>
-              <a className="dp-inline-link" href="/?join=1">
+              <a className="dp-inline-link" href="/?join=1" onClick={join}>
                 {t(
                   "تعالى، مكانك موجود.",
                   "Come along. There’s a place for you.",
@@ -473,10 +527,42 @@ export default function DesignPreview() {
               </p>
             )}
             <div className="dp-timeline">
-              {cards(
-                list
-                  .filter((e) => new Date(e.end_at) >= new Date())
-                  .slice(0, 2),
+              {loading ? (
+                <p role="status" className="dp-loading">
+                  {t("جارٍ تحميل الفعاليات…", "Loading events…")}
+                </p>
+              ) : list.filter((e) => new Date(e.end_at) >= new Date())
+                  .length ? (
+                cards(
+                  list
+                    .filter((e) => new Date(e.end_at) >= new Date())
+                    .slice(0, 2),
+                )
+              ) : (
+                <div className="dp-empty" data-testid="empty-events">
+                  <CalendarDays size={28} strokeWidth={1.2} />
+                  <h3>
+                    {loadError
+                      ? t("تعذّر تحميل الفعاليات", "Unable to load events")
+                      : t(
+                          "فعالياتنا الجديدة قريبًا",
+                          "Our next events are coming soon",
+                        )}
+                  </h3>
+                  <p>
+                    {loadError
+                      ? t("حاول مرة أخرى بعد قليل", "Please try again shortly")
+                      : t(
+                          "أول ما نعلن عن فعالية، هتلاقيها هنا",
+                          "New events will appear here when announced",
+                        )}
+                  </p>
+                  {loadError && (
+                    <button className="dp-inline-link" onClick={onRetry}>
+                      {t("حاول مجددًا", "Retry")}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </section>
@@ -502,14 +588,14 @@ export default function DesignPreview() {
               <br />
               {t("تفرق.", "a difference.")}
             </h2>
-            <a className="dp-join dp-join-large" href="/?join=1">
+            <a className="dp-join dp-join-large" href="/?join=1" onClick={join}>
               {t("انضم إلينا", "Join us")}
               <Arrow size={21} />
             </a>
           </section>
-        </main>
+        </ContentTag>
       ) : (
-        <main className="dp-feed">
+        <ContentTag className="dp-feed">
           <div className="dp-feed-heading">
             <h1>{t("الفعاليات", "Events")}</h1>
             <div className="dp-segmented">
@@ -560,28 +646,32 @@ export default function DesignPreview() {
               "Have a class during an event? Request an official academic excuse when registering. Excuse and accommodation requests are automatically accepted.",
             )}
           </p>
-        </main>
+        </ContentTag>
       )}
-      <footer className="dp-footer">
-        <span>
-          من أجل مصر{" "}
-          <small>
-            {t(
-              "كلية العلوم، جامعة القاهرة",
-              "Faculty of Science, Cairo University",
-            )}
-          </small>
-        </span>
-        <button
-          onClick={() => navigate(tab === "welcome" ? "feed" : "welcome")}
-        >
-          {tab === "welcome"
-            ? t("الفعاليات", "Events")
-            : t("عن من أجل مصر", "About our community")}
-        </button>
-        <a href="/?join=1">{t("انضم إلينا", "Join us")}</a>
-        <span className="dp-copyright">© {new Date().getFullYear()}</span>
-      </footer>
+      {!embedded && (
+        <footer className="dp-footer">
+          <span>
+            من أجل مصر{" "}
+            <small>
+              {t(
+                "كلية العلوم، جامعة القاهرة",
+                "Faculty of Science, Cairo University",
+              )}
+            </small>
+          </span>
+          <button
+            onClick={() => navigate(tab === "welcome" ? "feed" : "welcome")}
+          >
+            {tab === "welcome"
+              ? t("الفعاليات", "Events")
+              : t("عن من أجل مصر", "About our community")}
+          </button>
+          <a href="/?join=1" onClick={join}>
+            {t("انضم إلينا", "Join us")}
+          </a>
+          <span className="dp-copyright">© {new Date().getFullYear()}</span>
+        </footer>
+      )}
       {selected && (
         <div className="dp-overlay" onClick={() => setSelected(null)}>
           <section

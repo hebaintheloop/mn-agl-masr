@@ -32,3 +32,9 @@ Student codes now require exactly seven digits without separators. Existing prof
 Deployment: dpl_FKsB8ZRrqgRXJ3N9QbBuaQAm7YGX; frontend source 19c5254044ca4c1cf9698e9342c678a1b0fc9071; gateway version 7.
 
 The first deployed preview check caught a server/browser timezone mismatch. Preview dates/times now explicitly use Africa/Cairo. Final deployed checks passed in both America/Los_Angeles and Africa/Cairo browser contexts with zero render errors, English switching, dark mode, phone layout, and the seven-digit signup field. Corrected deployment: dpl_FfjfiGfBhCKBm5DfZr9vm2qCFbov, source c8202323843a0653c32d6f03d616593f8b2e631a.
+
+## Approved design applied across the app
+
+The approved welcome design is now shared with the production homepage, with the squiggly arrow removed. Events, registration, accounts, leaderboard, attendance, leader tools and dialogs use the same Cairo University identity and neutral/red palette. Status and points labels have opaque solid fills and measured text contrast of at least 4.5:1 in both themes. Mobile create-event date fields stack vertically.
+
+The production build, TypeScript and five existing unit tests passed. `node tests/design-rollout.mjs` passed student and leader UI states, events, requests, account, leaderboard, camera screen, language switching, dark mode, 390/375 px layouts, and solid-label contrast. These role states use browser-only intercepted API fixtures, no test accounts, role grants or database writes. A separate anonymous test confirmed the live homepage renders an empty state rather than sample events and that the account screen opens login.

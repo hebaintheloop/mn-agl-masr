@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 export const metadata: Metadata = {
-  title: "من أجل مصر · كلية العلوم",
+  title: "من أجل مصر، كلية العلوم، جامعة القاهرة",
   description:
-    "الموقع الرسمي لطلاب من أجل مصر بكلية العلوم. شارك في الفعاليات، تطوع، واصنع أثرًا.",
+    "طلاب من أجل مصر بكلية العلوم، جامعة القاهرة. شارك في الفعاليات، تطوع، واصنع أثرًا.",
 };
 export default function RootLayout({
   children,

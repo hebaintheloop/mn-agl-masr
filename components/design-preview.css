@@ -207,14 +207,6 @@
   bottom: 100px;
   transform: rotate(-5deg);
 }
-.dp-drawn-arrow {
-  position: absolute;
-  inset-inline-start: 9%;
-  top: 193px;
-  width: 95px;
-  height: 60px;
-  transform: rotate(5deg);
-}
 .dp-hand-star {
   position: absolute;
   inset-inline-end: 9%;
@@ -675,9 +667,6 @@ html[lang="en"] .dp-about h2 {
 html[lang="en"] .dp-last-word h2 {
   line-height: 1.05;
 }
-html[lang="en"] .dp-drawn-arrow {
-  transform: scaleX(-1);
-}
 @media (max-width: 1000px) {
   .dp-header {
     gap: 25px;
@@ -688,8 +677,7 @@ html[lang="en"] .dp-drawn-arrow {
   .dp-header nav {
     gap: 20px;
   }
-  .dp-collage-note,
-  .dp-drawn-arrow {
+  .dp-collage-note {
     display: none;
   }
   .dp-collage {
@@ -1095,5 +1083,51 @@ html[data-theme="dark"] .dp-headline-accent {
   }
   .dp-wordmark small {
     max-width: 100px;
+  }
+}
+
+.dp-embedded {
+  min-height: 0;
+}
+.dp-embedded .dp-intro {
+  padding-top: 36px;
+}
+.dp-media-note {
+  color: var(--dp-muted);
+  font-size: 10px;
+  margin: 0 0 15px;
+}
+.dp-loading {
+  color: var(--dp-muted);
+  font-size: 13px;
+  padding: 35px 0;
+}
+.dp-empty h3 {
+  font-size: 20px;
+  margin: 12px 0 10px;
+}
+.dp-empty .dp-inline-link {
+  margin-top: 18px;
+}
+.dp-points,
+html[data-theme="dark"] .dp-points {
+  background: #ce1126;
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  line-height: 1.45;
+  font-weight: 500;
+  border: 0;
+  box-shadow: none;
+}
+@media (max-width: 700px) {
+  .dp-embedded .dp-intro {
+    padding-top: 36px;
+  }
+  .dp-media-note {
+    font-size: 9px;
+  }
+  .dp-points {
+    font-size: 10px;
   }
 }

@@ -23,7 +23,7 @@ Student-code/password signup and login; required encrypted national ID, full nam
 
 ## Setup still requiring account-owner input
 
-Assign the first real leader only after the owner identifies the correct registered account. Google OAuth is not configured in the connected Supabase project, so no nonworking Google button is shown. Replace the illustrative photos and wordmark with the original faculty media and logo; leader tools accept HTTPS video/poster/gallery URLs. The initial site deliberately has no invented news or events.
+The first real leader was assigned only after the owner authorized the specific existing account. Google OAuth is not configured in the connected Supabase project, so no nonworking Google button is shown. Replace the illustrative photos and wordmark with the original faculty media and logo; leader tools accept HTTPS video/poster/gallery URLs. The initial site deliberately has no invented news or events.
 
 ## Free plan limits
 
