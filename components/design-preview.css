@@ -13,7 +13,7 @@
 .dp h1,
 .dp h2,
 .dp h3 {
-  letter-spacing: -0.045em;
+  letter-spacing: normal;
 }
 .dp button,
 .dp a {
@@ -58,7 +58,7 @@
   font-size: 24px;
   font-weight: 600;
   line-height: 1.3;
-  letter-spacing: -0.04em;
+  letter-spacing: normal;
   white-space: nowrap;
 }
 .dp-wordmark small {
@@ -123,7 +123,7 @@
 .dp-intro h1 {
   font-size: clamp(60px, 7vw, 108px);
   line-height: 1.22;
-  letter-spacing: -0.06em;
+  letter-spacing: normal;
   font-weight: 500;
 }
 .dp-collage {
@@ -135,85 +135,47 @@
   max-width: 1080px;
   margin: 6px auto 0;
 }
-.dp-photo {
+/* HISS-style unframed media. Outer angles stay fixed; the images cycle inside. */
+.hiss-image-stack {
+  width: 240px;
+  aspect-ratio: 2.35 / 3;
   margin: 0;
-  padding: 9px 9px 10px;
-  background: #ffffff;
-  color: #333333;
-  border: 1px solid #e5e5e5;
-  box-shadow: 0 3px 8px #2020200d;
-  width: 220px;
   flex-shrink: 0;
   position: relative;
-  animation: paper-float 10s ease-in-out infinite;
 }
-.dp-photo img,
-.dp-photo video {
-  height: 228px;
-  width: 100%;
-  object-fit: cover;
-  filter: saturate(0.7);
-  display: block;
-}
-.dp-photo figcaption {
-  font-size: 10px;
-  line-height: 1.5;
-  margin-top: 10px;
-  text-align: start;
-  transform: rotate(-1deg);
-}
-.photo-one {
-  --r: -9deg;
-  --y: 17px;
-  transform: translateY(17px) rotate(-9deg);
+.hiss-stack-0 {
+  transform: translate(24px, 16px) rotate(-12deg);
   z-index: 1;
-  inset-inline-start: 13px;
-  animation-delay: -2s;
 }
-.photo-two {
-  --r: 3deg;
-  --y: -2px;
-  width: 258px;
-  transform: rotate(3deg);
+.hiss-stack-1 {
+  width: 310px;
   z-index: 3;
-  animation-duration: 12s;
 }
-.photo-two img,
-.photo-two video {
-  height: 258px;
-}
-.photo-three {
-  --r: 10deg;
-  --y: 21px;
-  transform: translateY(21px) rotate(10deg);
+.hiss-stack-2 {
+  transform: translate(-24px, 16px) rotate(12deg);
   z-index: 2;
-  inset-inline-start: -13px;
-  animation-delay: -5s;
 }
-.dp-collage-note {
+.hiss-stack-entrance {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.hiss-image-layer {
   position: absolute;
-  font-size: 14px;
-  line-height: 1.5;
-  text-align: start;
-  color: var(--dp-muted);
+  inset: 0;
+  transform-origin: center;
 }
-.note-one {
-  inset-inline-start: 3%;
-  top: 130px;
-  transform: rotate(4deg);
+.hiss-image-layer:not(:first-child) {
+  transform: scale(0);
 }
-.note-two {
-  inset-inline-end: 2%;
-  bottom: 100px;
-  transform: rotate(-5deg);
-}
-.dp-hand-star {
-  position: absolute;
-  inset-inline-end: 9%;
-  top: 73px;
-  width: 46px;
-  height: 46px;
-  transform: rotate(-8deg);
+.hiss-image-layer img,
+.hiss-image-layer video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  border-radius: 8px;
 }
 .dp-motion {
   position: absolute;
@@ -607,18 +569,6 @@
   display: flex;
   margin-top: 25px;
 }
-.dp-paused .dp-photo {
-  animation-play-state: paused;
-}
-@keyframes paper-float {
-  0%,
-  100% {
-    transform: translateY(var(--y)) rotate(var(--r));
-  }
-  50% {
-    transform: translateY(calc(var(--y) - 10px)) rotate(calc(var(--r) + 1deg));
-  }
-}
 html[data-theme="dark"] .dp {
   --paper: #191919;
   --dp-ink: #f5f5f7;
@@ -677,20 +627,8 @@ html[lang="en"] .dp-last-word h2 {
   .dp-header nav {
     gap: 20px;
   }
-  .dp-collage-note {
-    display: none;
-  }
   .dp-collage {
     height: 410px;
-  }
-  .dp-photo {
-    width: 200px;
-  }
-  .photo-two {
-    width: 240px;
-  }
-  .dp-hand-star {
-    inset-inline-end: 0;
   }
   .dp-about {
     gap: 45px;
@@ -768,44 +706,6 @@ html[lang="en"] .dp-last-word h2 {
     margin-top: 8px;
     width: 100%;
     max-width: 430px;
-  }
-  .dp-photo {
-    width: 123px;
-    padding: 5px 5px 7px;
-  }
-  .dp-photo img,
-  .dp-photo video {
-    height: 150px;
-  }
-  .dp-photo figcaption {
-    font-size: 7px;
-    margin-top: 7px;
-    white-space: nowrap;
-  }
-  .photo-one {
-    inset-inline-start: 19px;
-    --r: -12deg;
-    --y: 15px;
-  }
-  .photo-two {
-    width: 156px;
-    --r: 2deg;
-    --y: -4px;
-  }
-  .photo-two img,
-  .photo-two video {
-    height: 182px;
-  }
-  .photo-three {
-    inset-inline-start: -19px;
-    --r: 11deg;
-    --y: 22px;
-  }
-  .dp-hand-star {
-    width: 31px;
-    height: 31px;
-    top: 23px;
-    inset-inline-end: 4%;
   }
   .dp-motion {
     bottom: 10px;
@@ -1008,9 +908,6 @@ html[lang="en"] .dp-last-word h2 {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .dp-photo {
-    animation: none !important;
-  }
   .dp * {
     scroll-behavior: auto;
     transition: none !important;
@@ -1129,5 +1026,69 @@ html[data-theme="dark"] .dp-points {
   }
   .dp-points {
     font-size: 10px;
+  }
+}
+
+/* Preserve the approved page, with closer HISS media proportions and motion. */
+.dp-collage {
+  direction: ltr;
+  height: 440px;
+  margin-top: 20px;
+}
+.dp-welcome {
+  font-size: 15px;
+  line-height: 1.8;
+}
+.dp-header nav {
+  font-size: 15px;
+  font-weight: 500;
+}
+.dp-label {
+  font-size: 13px;
+}
+html[lang="ar"] .dp h1,
+html[lang="ar"] .dp h2,
+html[lang="ar"] .dp h3 {
+  letter-spacing: normal;
+}
+@media (max-width: 1000px) {
+  .hiss-image-stack {
+    width: 210px;
+  }
+  .hiss-stack-1 {
+    width: 270px;
+  }
+  .dp-collage {
+    height: 390px;
+  }
+}
+@media (max-width: 700px) {
+  .dp-collage {
+    height: 290px;
+    margin-top: 24px;
+  }
+  .hiss-image-stack {
+    width: 29vw;
+    max-width: 155px;
+  }
+  .hiss-stack-0 {
+    transform: translate(16px, 12px) rotate(-12deg);
+  }
+  .hiss-stack-1 {
+    width: 38vw;
+    max-width: 195px;
+  }
+  .hiss-stack-2 {
+    transform: translate(-16px, 12px) rotate(12deg);
+  }
+  .dp-welcome {
+    font-size: 13px;
+  }
+  .dp-header nav {
+    font-size: 13px;
+  }
+  .dp-motion {
+    width: 36px;
+    height: 36px;
   }
 }

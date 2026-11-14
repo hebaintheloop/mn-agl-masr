@@ -13,6 +13,7 @@ import {
   Check,
 } from "lucide-react";
 import "./design-preview.css";
+import { HissImageStack, useHissReveals } from "./hiss-motion";
 type EventItem = {
   id: string;
   title: string;
@@ -97,7 +98,6 @@ export function CommunityExperience({
     [dark, setDark] = useState(false),
     [tab, setTab] = useState("welcome"),
     [paused, setPaused] = useState(false),
-    [videoFailed, setVideoFailed] = useState(false),
     [past, setPast] = useState(false),
     [fetchedEvents, setEvents] = useState<EventItem[]>([]),
     [selected, setSelected] = useState<EventItem | null>(null),
@@ -109,7 +109,8 @@ export function CommunityExperience({
     [fetchedNews, setNews] = useState<
       { title: string; body: string; id: string }[]
     >([]);
-  const video = useRef<HTMLVideoElement>(null);
+  const motionRoot = useRef<HTMLDivElement>(null);
+  useHissReveals(motionRoot, tab);
   const en = language ?? localEn;
   const events = content?.events ?? fetchedEvents;
   const home = content?.home ?? fetchedHome;
@@ -140,21 +141,6 @@ export function CommunityExperience({
     document.documentElement.dir = en ? "ltr" : "rtl";
     document.documentElement.lang = en ? "en" : "ar";
   }, [en]);
-  useEffect(() => {
-    const v = video.current;
-    if (!v) return;
-    const reduced = matchMedia("(prefers-reduced-motion: reduce)");
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && !paused && !reduced.matches)
-        v.play().catch(() => {});
-      else v.pause();
-    });
-    observer.observe(v);
-    return () => {
-      observer.disconnect();
-      v.pause();
-    };
-  }, [paused, home.video_url, tab]);
   useEffect(() => {
     if (!selected) return;
     const previous = document.activeElement as HTMLElement;
@@ -277,6 +263,7 @@ export function CommunityExperience({
     ));
   return (
     <div
+      ref={motionRoot}
       className={
         "dp " + (embedded ? "dp-embedded " : "") + (paused ? "dp-paused" : "")
       }
@@ -360,7 +347,7 @@ export function CommunityExperience({
                 "Welcome to Mn Agl Masr, Faculty of Science, Cairo University",
               )}
             </p>
-            <h1>
+            <h1 data-hiss-reveal>
               {t("نتعلّم، نشارك،", "Learn, take part,")}
               <br />
               <span className="dp-headline-accent">
@@ -368,81 +355,27 @@ export function CommunityExperience({
               </span>
             </h1>
             <div className="dp-collage">
-              <span className="dp-collage-note note-one">
-                {t("ناس جديدة،", "New faces,")}
-                <br />
-                {t("وحكايات أكتر.", "more stories.")}
-              </span>
-              <figure className="dp-photo photo-one">
-                <img
-                  src={img(0)}
-                  alt={t(
-                    "صورة توضيحية لمجموعة طلاب",
-                    "Illustrative photograph of students",
+              {[0, 1, 2].map((slot) => (
+                <HissImageStack
+                  key={slot}
+                  index={slot}
+                  paused={paused}
+                  images={[0, 1, 2].map(
+                    (layer) =>
+                      home.gallery_urls?.[slot + layer * 3] ||
+                      img((slot + layer) % 3),
                   )}
-                />
-                <figcaption>
-                  {t(
-                    "كل بداية، بتجمعنا.",
-                    "Every beginning brings us together.",
+                  label={t(
+                    "صور من مجتمعنا، الصور الحالية توضيحية ما لم تُضف صور الفعاليات",
+                    "Community photographs, illustrative until event photos are added",
                   )}
-                </figcaption>
-              </figure>
-              <figure className="dp-photo photo-two">
-                {home.video_url && !videoFailed ? (
-                  <video
-                    ref={video}
-                    src={home.video_url}
-                    muted
-                    playsInline
-                    loop
-                    preload="none"
-                    onError={() => setVideoFailed(true)}
-                    poster={home.poster_url || img(1)}
-                  />
-                ) : (
-                  <img
-                    src={home.poster_url || img(1)}
-                    alt={t(
-                      "صورة توضيحية لفعالية طلابية",
-                      "Illustrative photograph of an event",
-                    )}
-                  />
-                )}
-                <figcaption>
-                  {t("من الكلية، نبدأ.", "It starts at our faculty.")}
-                </figcaption>
-              </figure>
-              <figure className="dp-photo photo-three">
-                <img
-                  src={img(2)}
-                  alt={t(
-                    "صورة توضيحية للتعاون",
-                    "Illustrative photograph of collaboration",
-                  )}
+                  videoUrl={slot === 1 ? home.video_url : undefined}
+                  posterUrl={slot === 1 ? home.poster_url : undefined}
                 />
-                <figcaption>{t("إيد في إيد.", "Side by side.")}</figcaption>
-              </figure>
-              <svg
-                className="dp-hand-star"
-                viewBox="0 0 50 50"
-                aria-hidden="true"
-                fill="none"
-              >
-                <path
-                  d="M24 3l2 43M4 24l42 2M9 8l33 32M9 41L40 9"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <span className="dp-collage-note note-two">
-                {t("فيه دايمًا", "Always room")}
-                <br />
-                {t("مكان لفكرتك.", "for your ideas.")}
-              </span>
+              ))}
               <button
                 className="dp-motion"
+                aria-pressed={paused}
                 onClick={() => setPaused(!paused)}
                 aria-label={
                   paused
@@ -471,7 +404,7 @@ export function CommunityExperience({
               </button>
             </div>
           </section>
-          <section className="dp-about">
+          <section className="dp-about" data-hiss-reveal>
             <div>
               <span className="dp-label">{t("(عنّا)", "(About us)")}</span>
               <h2>
@@ -503,7 +436,7 @@ export function CommunityExperience({
             </div>
           </section>
           <section className="dp-home-events">
-            <div className="dp-section-heading">
+            <div className="dp-section-heading" data-hiss-reveal>
               <div>
                 <span className="dp-label">
                   {t("(الفعاليات القادمة)", "(Coming up)")}
@@ -579,7 +512,7 @@ export function CommunityExperience({
               ))}
             </section>
           )}
-          <section className="dp-last-word">
+          <section className="dp-last-word" data-hiss-reveal>
             <span className="dp-label">
               {t("(والحكاية لسه بتبدأ)", "(And this is just the beginning)")}
             </span>
