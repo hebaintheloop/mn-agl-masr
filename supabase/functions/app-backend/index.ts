@@ -5,7 +5,7 @@ const checked=(r:any)=>{if(r.error)throw new Error(r.error.message);return r.dat
 Deno.serve(async(req)=>{try{
 const {data:setting}=await db.from('app_settings').select('value').eq('key','gateway_hash').single();
 if(!setting||await digest(req.headers.get('X-App-Key')||'')!==setting.value)return Response.json({error:'Forbidden'},{status:403});
-const b=await req.json();const a=b.action;if(b._rate){const allowed=checked(await db.rpc('take_rate_limit',{p_key:b._rate.key,p_limit:b._rate.limit,p_seconds:b._rate.seconds}));if(!allowed)return Response.json({error:'Please wait'},{status:429});}
+const b=await req.json();const a=b.action;
 if(a==='rate')return Response.json({allowed:checked(await db.rpc('take_rate_limit',{p_key:b.key,p_limit:b.limit,p_seconds:b.seconds}))});
 if(a==='public'){const [events,news]=await Promise.all([db.from('events').select('id,title,description,location,start_at,end_at,points,cover_url').order('start_at').limit(100),db.from('news').select('*').order('created_at',{ascending:false}).limit(10)]);const {data:home}=await db.from('app_settings').select('value').eq('key','home').maybeSingle();return Response.json({events:checked(events),news:checked(news),home:home?JSON.parse(home.value):{}});}
 if(a==='signup'){
@@ -23,6 +23,7 @@ checked(await db.from('profiles').update({recovery_hash:b.new_recovery_hash}).eq
 return Response.json({saved:true});}
 const token=req.headers.get('X-User-Token');if(!token)return Response.json({error:'Login required'},{status:401});
 const {data:{user},error}=await db.auth.getUser(token);if(error||!user)return Response.json({error:'Login required'},{status:401});
+if(b._rate){const allowed=checked(await db.rpc('take_rate_limit',{p_key:await digest(user.id+a),p_limit:90,p_seconds:60}));if(!allowed)return Response.json({error:'Please wait'},{status:429});}
 const profile=checked(await db.from('profiles').select('id,full_name,student_code,phone,role').eq('id',user.id).single());const leader=profile.role==='leader';
 if(a==='me'){const [regs,points]=await Promise.all([db.from('registrations').select('*').eq('user_id',user.id),db.from('points_ledger').select('points,event_id').eq('user_id',user.id)]);return Response.json({profile,registrations:checked(regs),points:checked(points)});}
 if(a==='leaderboard')return Response.json({rows:checked(await db.rpc('leaderboard'))});
