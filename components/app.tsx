@@ -15,8 +15,12 @@ import {
   Trophy,
   LoaderCircle,
   Download,
+  Users,
 } from "lucide-react";
 import { CommunityExperience } from "./design-preview";
+import { LeaderWorkspace } from "./leader-workspace";
+import { LeaderAttendance } from "./leader-attendance";
+import { cairoLocalToISO } from "@/lib/cairo-time";
 type EventItem = {
   id: string;
   title: string;
@@ -93,8 +97,9 @@ export default function App() {
     [creating, setCreating] = useState(false),
     [qr, setQr] = useState(""),
     [qrImage, setQrImage] = useState(""),
-    [attendees, setAttendees] = useState<any[]>([]),
-    [search, setSearch] = useState(""),
+    [manageRoster, setManageRoster] = useState(false),
+    [eventDraft, setEventDraft] = useState<Record<string, string>>({}),
+    [qrError, setQrError] = useState(""),
     [loadFailed, setLoadFailed] = useState(false),
     [past, setPast] = useState(false);
   const t = (ar: string, eng: string) => (en ? eng : ar);
@@ -114,10 +119,11 @@ export default function App() {
         (e: EventItem) => e.id === params.get("event"),
       );
       if (event) {
+        setManageRoster(params.get("manage") === "1");
         setSelected(event);
         setView("event");
       } else if (
-        ["events", "leaderboard", "account", "scan"].includes(
+        ["events", "leaderboard", "account", "scan", "leader"].includes(
           params.get("view") || "",
         )
       )
@@ -178,6 +184,7 @@ export default function App() {
     const pop = () => {
       const q = new URLSearchParams(location.search);
       const e = events.find((x) => x.id === q.get("event"));
+      setManageRoster(q.get("manage") === "1");
       setSelected(e || null);
       setView(e ? "event" : q.get("view") || "home");
     };
@@ -222,9 +229,16 @@ export default function App() {
       previous?.focus();
     };
   }, [auth, creating, recovery, qr]);
+  const RegistrationContainer =
+    me?.profile.role === "leader" ? "details" : "div";
   const total = me?.points.reduce((s, x) => s + x.points, 0) || 0;
-  function openEvent(e: EventItem) {
-    history.pushState(null, "", "/?event=" + e.id);
+  function openEvent(e: EventItem, manage = false) {
+    setManageRoster(manage);
+    history.pushState(
+      null,
+      "",
+      "/?event=" + e.id + (manage ? "&manage=1" : ""),
+    );
     setSelected(e);
     setView("event");
     setError("");
@@ -242,17 +256,19 @@ export default function App() {
       setNotice(t("أهلًا بك في من أجل مصر", "Welcome to Mn Agl Masr"));
     });
   }
-  async function loadAttendees() {
-    if (!selected) return;
-    await run(async () => {
-      const d = await api("attendees", { event_id: selected.id });
-      setAttendees(
-        d.rows.map((x: any) => ({
-          ...x,
-          present: d.attendance.some((a: any) => a.user_id === x.user_id),
-        })),
+  async function generateQr(code: string) {
+    setQrError("");
+    try {
+      const QRCode = (await import("qrcode")).default;
+      setQrImage(await QRCode.toDataURL(code, { width: 800, margin: 3 }));
+    } catch {
+      setQrError(
+        t(
+          "تم إنشاء الفعالية. أعد محاولة عرض الرمز.",
+          "Event created. Retry generating its QR image.",
+        ),
       );
-    });
+    }
   }
   return (
     <>
@@ -296,6 +312,14 @@ export default function App() {
             >
               {t("الفعاليات", "Events")}
             </button>
+            {me?.profile.role === "leader" && (
+              <button
+                className={"leader-nav " + (view === "leader" ? "active" : "")}
+                onClick={() => go("leader")}
+              >
+                {t("الإدارة", "Manage")}
+              </button>
+            )}
             {me && (
               <>
                 <button
@@ -329,9 +353,20 @@ export default function App() {
               {en ? "عربي" : "EN"}
             </button>
             {me ? (
-              <button className="small-btn" onClick={() => go("scan")}>
-                <ScanLine size={16} />
-                {t("الحضور", "Check in")}
+              <button
+                className="small-btn"
+                onClick={() =>
+                  go(me.profile.role === "leader" ? "leader" : "scan")
+                }
+              >
+                {me.profile.role === "leader" ? (
+                  <Users size={16} />
+                ) : (
+                  <ScanLine size={16} />
+                )}
+                {me.profile.role === "leader"
+                  ? t("الإدارة", "Manage")
+                  : t("الحضور", "Check in")}
               </button>
             ) : (
               <>
@@ -359,6 +394,7 @@ export default function App() {
               className="mobile-menu icon-btn"
               onClick={() => setMenu(!menu)}
               aria-label="Menu"
+              aria-expanded={menu}
             >
               <Menu size={20} />
             </button>
@@ -371,7 +407,7 @@ export default function App() {
           {notice}
         </div>
       )}
-      {error && !auth && (
+      {error && !auth && !creating && (
         <div role="alert" className="error-bar">
           {error}
           <button onClick={() => setError("")} aria-label="Close">
@@ -409,6 +445,32 @@ export default function App() {
             onJoin={() => (me ? go("events") : setAuth("signup"))}
           />
         )}
+        {view === "leader" &&
+          authChecked &&
+          (me?.profile.role === "leader" ? (
+            <LeaderWorkspace
+              events={events}
+              home={home}
+              en={en}
+              onCreate={() => {
+                setError("");
+                setCreating(true);
+              }}
+              onManage={(event) => openEvent(event, true)}
+              api={api}
+              onRefresh={refresh}
+            />
+          ) : (
+            <section className="app-container narrow">
+              <Empty
+                title={t("هذه الصفحة للقادة", "Leader access required")}
+                text={t(
+                  "سجّل الدخول بحساب قائد لعرض أدوات الإدارة.",
+                  "Sign in with a leader account to use these tools.",
+                )}
+              />
+            </section>
+          ))}
         {view === "events" && (
           <section className="app-container">
             <div className="page-heading">
@@ -484,7 +546,12 @@ export default function App() {
           </section>
         )}
         {view === "event" && selected && (
-          <section className="event-detail app-container">
+          <section
+            className={
+              "event-detail app-container " +
+              (me?.profile.role === "leader" ? "leader-event-detail" : "")
+            }
+          >
             <aside>
               <div className="event-cover">
                 {selected.cover_url ? (
@@ -551,265 +618,176 @@ export default function App() {
                   {t("نقطة عند الحضور", "points for attending")}
                 </span>
               </div>
-              <div className="registration-card">
-                <h3>
+              {me?.profile.role === "leader" && (
+                <>
+                  <button
+                    className="text-btn leader-back"
+                    onClick={() => go("leader")}
+                  >
+                    <ChevronLeft size={17} />
+                    {t("العودة للإدارة", "Back to management")}
+                  </button>
+                  <LeaderAttendance
+                    key={selected.id}
+                    event={selected}
+                    en={en}
+                    api={api}
+                    initialOpen={manageRoster}
+                  />
+                </>
+              )}
+              <RegistrationContainer className="leader-personal">
+                {me?.profile.role === "leader" && (
+                  <summary>
+                    {t("مشاركتي في الفعالية", "My own registration")}
+                  </summary>
+                )}
+                <div className="registration-card">
+                  <h3>
+                    {me?.registrations.some(
+                      (r) => r.event_id === selected.id && r.going,
+                    )
+                      ? t("أنت مشارك", "You’re going")
+                      : t("شارك في الفعالية", "Join this event")}
+                  </h3>
                   {me?.registrations.some(
                     (r) => r.event_id === selected.id && r.going,
-                  )
-                    ? t("أنت مشارك", "You’re going")
-                    : t("شارك في الفعالية", "Join this event")}
-                </h3>
-                {me?.registrations.some(
-                  (r) => r.event_id === selected.id && r.going,
-                ) && (
-                  <span className="status-label status-confirmed registration-status">
-                    <Check size={14} />
-                    {t("مشاركة مؤكدة", "Registration confirmed")}
-                  </span>
-                )}
-                {me ? (
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const data = Object.fromEntries(
-                        new FormData(e.currentTarget),
-                      );
-                      run(async () => {
-                        await api("rsvp", { ...data, event_id: selected.id });
-                        await refreshMe();
-                        setNotice(
-                          t(
-                            "تم التسجيل وحفظ طلباتك. مقبولة تلقائيًا.",
-                            "Registration saved. Your requests are automatically accepted.",
-                          ),
-                        );
-                      });
-                    }}
-                  >
-                    <label>
-                      {t(
-                        "تسهيلات تحتاجها لهذه الفعالية (اختياري)",
-                        "Accommodations for this event (optional)",
-                      )}
-                      <textarea
-                        name="accommodation"
-                        maxLength={2000}
-                        defaultValue={
-                          me.registrations.find(
-                            (r) => r.event_id === selected.id,
-                          )?.accommodation
-                        }
-                        placeholder={t(
-                          "أخبرنا بما يساعدك على المشاركة",
-                          "Tell us what would help you take part",
-                        )}
-                      />
-                    </label>
-                    <label>
-                      {t(
-                        "عذر رسمي لمحاضرة أو سكشن متعارض (اختياري)",
-                        "Academic excuse for a conflicting class (optional)",
-                      )}
-                      <textarea
-                        name="excuse"
-                        maxLength={2000}
-                        defaultValue={
-                          me.registrations.find(
-                            (r) => r.event_id === selected.id,
-                          )?.excuse
-                        }
-                        placeholder={t(
-                          "اسم المقرر، المحاضرة أو السكشن، الموعد",
-                          "Course, lecture or section, and time",
-                        )}
-                      />
-                    </label>
-                    <span className="status-label status-confirmed request-status">
+                  ) && (
+                    <span className="status-label status-confirmed registration-status">
                       <Check size={14} />
-                      {t(
-                        "الطلبات مقبولة تلقائيًا",
-                        "Requests automatically accepted",
-                      )}
+                      {t("مشاركة مؤكدة", "Registration confirmed")}
                     </span>
-                    <p className="small muted">
-                      {t(
-                        "طلباتك تخص هذه الفعالية فقط، وتُقبل تلقائيًا.",
-                        "These requests belong only to this event and are automatically accepted.",
-                      )}
-                    </p>
-                    <button className="primary full" disabled={busy}>
-                      {busy ? (
-                        <LoaderCircle className="spin" size={17} />
-                      ) : (
-                        <Check size={17} />
-                      )}{" "}
-                      {t(
-                        "تأكيد المشاركة وحفظ الطلبات",
-                        "Confirm attendance & save requests",
-                      )}
-                    </button>
-                    {me.registrations.some(
-                      (r) => r.event_id === selected.id && r.going,
-                    ) && (
-                      <button
-                        type="button"
-                        className="text-btn cancel"
-                        disabled={busy}
-                        onClick={() =>
-                          run(async () => {
-                            await api("rsvp", {
-                              event_id: selected.id,
-                              going: false,
-                            });
-                            await refreshMe();
-                            setNotice(
-                              t("تم إلغاء المشاركة", "Registration cancelled"),
-                            );
-                          })
-                        }
-                      >
-                        {t("إلغاء المشاركة", "Cancel registration")}
-                      </button>
-                    )}
-                  </form>
-                ) : (
-                  <>
-                    <p>
-                      {t(
-                        "سجّل دخولك للمشاركة وحفظ طلباتك.",
-                        "Log in to register and save your requests.",
-                      )}
-                    </p>
-                    <button
-                      className="primary full"
-                      onClick={() => setAuth("login")}
+                  )}
+                  {me ? (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const data = Object.fromEntries(
+                          new FormData(e.currentTarget),
+                        );
+                        run(async () => {
+                          await api("rsvp", { ...data, event_id: selected.id });
+                          await refreshMe();
+                          setNotice(
+                            t(
+                              "تم التسجيل وحفظ طلباتك. مقبولة تلقائيًا.",
+                              "Registration saved. Your requests are automatically accepted.",
+                            ),
+                          );
+                        });
+                      }}
                     >
-                      {t("تسجيل الدخول", "Log in")}
-                    </button>
-                  </>
-                )}
-              </div>
+                      <label>
+                        {t(
+                          "تسهيلات تحتاجها لهذه الفعالية (اختياري)",
+                          "Accommodations for this event (optional)",
+                        )}
+                        <textarea
+                          name="accommodation"
+                          maxLength={2000}
+                          defaultValue={
+                            me.registrations.find(
+                              (r) => r.event_id === selected.id,
+                            )?.accommodation
+                          }
+                          placeholder={t(
+                            "أخبرنا بما يساعدك على المشاركة",
+                            "Tell us what would help you take part",
+                          )}
+                        />
+                      </label>
+                      <label>
+                        {t(
+                          "عذر رسمي لمحاضرة أو سكشن متعارض (اختياري)",
+                          "Academic excuse for a conflicting class (optional)",
+                        )}
+                        <textarea
+                          name="excuse"
+                          maxLength={2000}
+                          defaultValue={
+                            me.registrations.find(
+                              (r) => r.event_id === selected.id,
+                            )?.excuse
+                          }
+                          placeholder={t(
+                            "اسم المقرر، المحاضرة أو السكشن، الموعد",
+                            "Course, lecture or section, and time",
+                          )}
+                        />
+                      </label>
+                      <span className="status-label status-confirmed request-status">
+                        <Check size={14} />
+                        {t(
+                          "الطلبات مقبولة تلقائيًا",
+                          "Requests automatically accepted",
+                        )}
+                      </span>
+                      <p className="small muted">
+                        {t(
+                          "طلباتك تخص هذه الفعالية فقط، وتُقبل تلقائيًا.",
+                          "These requests belong only to this event and are automatically accepted.",
+                        )}
+                      </p>
+                      <button className="primary full" disabled={busy}>
+                        {busy ? (
+                          <LoaderCircle className="spin" size={17} />
+                        ) : (
+                          <Check size={17} />
+                        )}{" "}
+                        {t(
+                          "تأكيد المشاركة وحفظ الطلبات",
+                          "Confirm attendance & save requests",
+                        )}
+                      </button>
+                      {me.registrations.some(
+                        (r) => r.event_id === selected.id && r.going,
+                      ) && (
+                        <button
+                          type="button"
+                          className="text-btn cancel"
+                          disabled={busy}
+                          onClick={() =>
+                            run(async () => {
+                              await api("rsvp", {
+                                event_id: selected.id,
+                                going: false,
+                              });
+                              await refreshMe();
+                              setNotice(
+                                t(
+                                  "تم إلغاء المشاركة",
+                                  "Registration cancelled",
+                                ),
+                              );
+                            })
+                          }
+                        >
+                          {t("إلغاء المشاركة", "Cancel registration")}
+                        </button>
+                      )}
+                    </form>
+                  ) : (
+                    <>
+                      <p>
+                        {t(
+                          "سجّل دخولك للمشاركة وحفظ طلباتك.",
+                          "Log in to register and save your requests.",
+                        )}
+                      </p>
+                      <button
+                        className="primary full"
+                        onClick={() => setAuth("login")}
+                      >
+                        {t("تسجيل الدخول", "Log in")}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </RegistrationContainer>
               <div className="about-event">
                 <h3>{t("عن الفعالية", "About the event")}</h3>
                 <p>{selected.description}</p>
               </div>
-              {me?.profile.role === "leader" && (
-                <div className="leader-panel">
-                  <button className="outline" onClick={loadAttendees}>
-                    {t(
-                      "المشاركون وطلبات الأعذار",
-                      "Attendees & academic excuses",
-                    )}
-                  </button>
-                  {attendees.length > 0 && (
-                    <>
-                      <input
-                        aria-label="Search phone"
-                        placeholder={t("بحث برقم الهاتف", "Search by phone")}
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                      />
-                      <button
-                        className="outline"
-                        onClick={() => {
-                          const csv =
-                            "\uFEFF" +
-                            [
-                              [
-                                "Name",
-                                "Student code",
-                                "Phone",
-                                "Accommodation",
-                                "Academic excuse",
-                                "Status",
-                                "Attended",
-                              ],
-                              ...attendees.map((r) => [
-                                r.profiles.full_name,
-                                r.profiles.student_code,
-                                r.profiles.phone,
-                                r.accommodation,
-                                r.excuse,
-                                "Accepted",
-                                r.present ? "Yes" : "No",
-                              ]),
-                            ]
-                              .map((row) =>
-                                row
-                                  .map(
-                                    (c) =>
-                                      '"' +
-                                      String(c)
-                                        .replace(/^[=+\-@]/, "'")
-                                        .replaceAll('"', '""') +
-                                      '"',
-                                  )
-                                  .join(","),
-                              )
-                              .join("\r\n");
-                          const a = document.createElement("a");
-                          a.href = URL.createObjectURL(
-                            new Blob([csv], {
-                              type: "text/csv;charset=utf-8;",
-                            }),
-                          );
-                          a.download = "event-requests.csv";
-                          a.click();
-                          URL.revokeObjectURL(a.href);
-                        }}
-                      >
-                        <Download size={16} />
-                        {t("تصدير CSV", "Export CSV")}
-                      </button>
-                      {attendees
-                        .filter((r) => r.profiles.phone.includes(search))
-                        .map((r) => (
-                          <article className="attendee" key={r.user_id}>
-                            <b>{r.profiles.full_name}</b>
-                            <span dir="ltr">{r.profiles.phone}</span>
-                            {r.excuse && (
-                              <p>
-                                {t("عذر أكاديمي: ", "Academic excuse: ")}
-                                {r.excuse}
-                              </p>
-                            )}
-                            {r.accommodation && (
-                              <p>
-                                {t("تسهيلات: ", "Accommodation: ")}
-                                {r.accommodation}
-                              </p>
-                            )}
-                            <small className="status-label status-confirmed">
-                              {t("الطلبات مقبولة", "Requests accepted")}
-                            </small>
-                            {r.present ? (
-                              <span className="status-label status-confirmed attendance-present">
-                                <Check size={14} />
-                                {t("حاضر", "Present")}
-                              </span>
-                            ) : (
-                              <button
-                                className="small-btn"
-                                disabled={busy}
-                                onClick={() =>
-                                  run(async () => {
-                                    await api("manual", {
-                                      event_id: selected.id,
-                                      user_id: r.user_id,
-                                    });
-                                    await loadAttendees();
-                                  })
-                                }
-                              >
-                                {t("تسجيل الحضور", "Check in")}
-                              </button>
-                            )}
-                          </article>
-                        ))}
-                    </>
-                  )}
-                </div>
-              )}
             </div>
           </section>
         )}
@@ -954,98 +932,24 @@ export default function App() {
               )}
             </div>
             {me.profile.role === "leader" && (
-              <div className="panel">
-                <h3>{t("أدوات القادة", "Leader tools")}</h3>
-                <button className="primary" onClick={() => setCreating(true)}>
+              <div className="panel leader-shortcut">
+                <button className="primary" onClick={() => go("leader")}>
+                  {t("إدارة الأسرة", "Team management")}
+                </button>
+                <button
+                  className="outline"
+                  onClick={() => {
+                    setError("");
+                    setCreating(true);
+                  }}
+                >
                   <Plus size={16} />
                   {t("إنشاء فعالية", "Create event")}
                 </button>
-                <form
-                  className="news-form"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const f = Object.fromEntries(new FormData(e.currentTarget));
-                    const form = e.currentTarget;
-                    run(async () => {
-                      await api("news", f);
-                      await refresh();
-                      form.reset();
-                      setNotice(t("تم نشر الخبر", "News published"));
-                    });
-                  }}
-                >
-                  <h3>{t("نشر خبر", "Publish news")}</h3>
-                  <label>
-                    {t("عنوان الخبر", "Title")}
-                    <input name="title" required maxLength={200} />
-                  </label>
-                  <label>
-                    {t("التفاصيل", "Details")}
-                    <textarea name="body" required maxLength={5000} />
-                  </label>
-                  <button className="outline" disabled={busy}>
-                    {t("نشر", "Publish")}
-                  </button>
-                </form>
-                <form
-                  className="news-form"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const f = Object.fromEntries(new FormData(e.currentTarget));
-                    run(async () => {
-                      await api("home", {
-                        home: {
-                          video_url: f.video_url,
-                          poster_url: f.poster_url,
-                          gallery_urls: String(f.gallery_urls || "")
-                            .split("\n")
-                            .map((x) => x.trim())
-                            .filter(Boolean),
-                        },
-                      });
-                      await refresh();
-                      setNotice(
-                        t(
-                          "تم حفظ وسائط الصفحة الرئيسية",
-                          "Homepage media saved",
-                        ),
-                      );
-                    });
-                  }}
-                >
-                  <h3>{t("وسائط الصفحة الرئيسية", "Homepage media")}</h3>
-                  <label>
-                    {t("رابط فيديو MP4 (اختياري)", "MP4 video URL (optional)")}
-                    <input
-                      type="url"
-                      name="video_url"
-                      defaultValue={home.video_url}
-                      pattern="https://.*"
-                    />
-                  </label>
-                  <label>
-                    {t("رابط الصورة البديلة", "Fallback image URL")}
-                    <input
-                      type="url"
-                      name="poster_url"
-                      defaultValue={home.poster_url}
-                      pattern="https://.*"
-                    />
-                  </label>
-                  <label>
-                    {t(
-                      "صور المعرض - رابط في كل سطر",
-                      "Gallery images - one URL per line",
-                    )}
-                    <textarea
-                      name="gallery_urls"
-                      defaultValue={home.gallery_urls?.join("\n")}
-                    />
-                  </label>
-                  <button className="outline" disabled={busy}>
-                    {t("حفظ الوسائط", "Save media")}
-                  </button>
-                </form>
+                <button className="outline" onClick={() => go("scan")}>
+                  <ScanLine size={16} />
+                  {t("مسح رمز حضوري", "Scan my attendance QR")}
+                </button>
               </div>
             )}
           </section>
@@ -1333,53 +1237,130 @@ export default function App() {
             <button
               className="close icon-btn"
               aria-label="Close"
-              onClick={() => setCreating(false)}
+              onClick={() => {
+                setCreating(false);
+                setError("");
+              }}
             >
               <X size={20} />
             </button>
             <h2>{t("فعالية جديدة", "New event")}</h2>
             <form
+              onInput={(e) => {
+                const f = Object.fromEntries(new FormData(e.currentTarget));
+                setEventDraft(
+                  Object.fromEntries(
+                    Object.entries(f).map(([k, v]) => [k, String(v)]),
+                  ),
+                );
+                e.currentTarget
+                  .querySelector<HTMLInputElement>('[name="end_at"]')
+                  ?.setCustomValidity("");
+              }}
               onSubmit={(e) => {
                 e.preventDefault();
                 const f = Object.fromEntries(new FormData(e.currentTarget));
+                let startAt: string, endAt: string;
+                try {
+                  startAt = cairoLocalToISO(String(f.start_at));
+                  endAt = cairoLocalToISO(String(f.end_at));
+                } catch {
+                  setError(
+                    t(
+                      "راجع الموعد بتوقيت القاهرة. اختر وقتًا غير متكرر أو محذوف بسبب التوقيت الصيفي.",
+                      "Check the Cairo date and time. Choose a time that is not repeated or skipped by daylight saving.",
+                    ),
+                  );
+                  return;
+                }
+                if (new Date(endAt) <= new Date(startAt)) {
+                  const end =
+                    e.currentTarget.querySelector<HTMLInputElement>(
+                      '[name="end_at"]',
+                    )!;
+                  end.setCustomValidity(
+                    t(
+                      "النهاية يجب أن تكون بعد البداية",
+                      "End time must be after start time",
+                    ),
+                  );
+                  end.reportValidity();
+                  return;
+                }
                 run(async () => {
                   const d = await api("create-event", {
                     ...f,
                     points: Number(f.points),
-                    start_at: new Date(String(f.start_at)).toISOString(),
-                    end_at: new Date(String(f.end_at)).toISOString(),
+                    start_at: startAt,
+                    end_at: endAt,
                   });
-                  setQr(d.code);
-                  const QRCode = (await import("qrcode")).default;
-                  setQrImage(
-                    await QRCode.toDataURL(d.code, { width: 800, margin: 3 }),
-                  );
+                  setEventDraft({});
                   setCreating(false);
-                  await refresh();
+                  setQrImage("");
+                  setQr(d.code);
+                  await generateQr(d.code);
+                  try {
+                    await refresh();
+                  } catch {
+                    setLoadFailed(true);
+                  }
                   setNotice(t("تم إنشاء الفعالية", "Event created"));
                 });
               }}
             >
               <label>
                 {t("العنوان", "Title")}
-                <input name="title" required maxLength={200} />
+                <input
+                  name="title"
+                  required
+                  minLength={2}
+                  maxLength={200}
+                  defaultValue={eventDraft.title}
+                />
               </label>
               <label>
                 {t("الوصف ونقطة التجمع", "Description & meeting point")}
-                <textarea name="description" required maxLength={5000} />
+                <textarea
+                  name="description"
+                  required
+                  maxLength={5000}
+                  defaultValue={eventDraft.description}
+                />
               </label>
               <label>
                 {t("المكان", "Location")}
-                <input name="location" required maxLength={300} />
+                <input
+                  name="location"
+                  required
+                  minLength={2}
+                  maxLength={300}
+                  defaultValue={eventDraft.location}
+                />
               </label>
+              <p className="leader-create-help">
+                {t(
+                  "كل المواعيد بتوقيت القاهرة. الأعذار والتسهيلات تُقبل تلقائيًا عند التسجيل.",
+                  "All times are in Cairo. Excuse and accommodation requests are automatically accepted.",
+                )}
+              </p>
               <div className="form-columns">
                 <label>
                   {t("البداية", "Starts")}
-                  <input type="datetime-local" name="start_at" required />
+                  <input
+                    type="datetime-local"
+                    name="start_at"
+                    defaultValue={eventDraft.start_at}
+                    required
+                  />
                 </label>
                 <label>
                   {t("النهاية", "Ends")}
-                  <input type="datetime-local" name="end_at" required />
+                  <input
+                    type="datetime-local"
+                    name="end_at"
+                    defaultValue={eventDraft.end_at}
+                    required
+                  />
                 </label>
               </div>
               <label>
@@ -1389,13 +1370,18 @@ export default function App() {
                   name="points"
                   min={0}
                   max={10000}
-                  defaultValue={10}
+                  defaultValue={eventDraft.points || 10}
                   required
                 />
               </label>
               <label>
                 {t("رابط صورة الغلاف (اختياري)", "Cover image URL (optional)")}
-                <input type="url" name="cover_url" pattern="https://.*" />
+                <input
+                  type="url"
+                  name="cover_url"
+                  defaultValue={eventDraft.cover_url}
+                  pattern="https://.*"
+                />
               </label>
               {error && (
                 <p role="alert" className="form-error">
@@ -1424,15 +1410,30 @@ export default function App() {
                 "Print and keep a copy. Scan it inside the app after logging in.",
               )}
             </p>
-            <img src={qrImage} alt="Attendance QR" />
-            <a
-              className="primary full"
-              href={qrImage}
-              download="attendance-qr.png"
-            >
-              <Download size={16} />
-              {t("تحميل للطباعة", "Download to print")}
-            </a>
+            {qrImage ? (
+              <>
+                <img src={qrImage} alt="Attendance QR" />
+                <a
+                  className="primary full"
+                  href={qrImage}
+                  download="attendance-qr.png"
+                >
+                  <Download size={16} />
+                  {t("تحميل للطباعة", "Download to print")}
+                </a>
+              </>
+            ) : qrError ? (
+              <div role="alert" className="leader-error">
+                {qrError}
+                <button className="outline" onClick={() => generateQr(qr)}>
+                  {t("عرض الرمز", "Generate QR image")}
+                </button>
+              </div>
+            ) : (
+              <p role="status">
+                {t("جارٍ تجهيز الرمز…", "Preparing QR image…")}
+              </p>
+            )}
             <button
               className="text-btn"
               onClick={() => {

@@ -1,0 +1,65 @@
+import {chromium} from '@playwright/test';
+import assert from 'node:assert/strict';
+const base=process.env.UI_TEST_BASE_URL||'http://localhost:3500';
+const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox'],proxy:base.startsWith('https:')&&process.env.HTTPS_PROXY?{server:process.env.HTTPS_PROXY}:undefined});
+const context=await browser.newContext({ignoreHTTPSErrors:true,viewport:{width:1440,height:1000},timezoneId:'America/Los_Angeles',acceptDownloads:true});
+const p=await context.newPage();const errors=[];p.on('pageerror',e=>errors.push(e.message));
+const event={id:'leader-ui-current',title:'ملتقى طلاب العلوم',description:'تفاصيل الفعالية',location:'كلية العلوم، جامعة القاهرة',start_at:new Date(Date.now()-600000).toISOString(),end_at:new Date(Date.now()+3600000).toISOString(),points:20,cover_url:null};
+const second={...event,id:'leader-ui-second',title:'ورشة التنظيم',start_at:new Date(Date.now()+86400000).toISOString(),end_at:new Date(Date.now()+90000000).toISOString()};
+const user={profile:{id:'leader-fixture',full_name:'قائد للمعاينة',student_code:'0000000',phone:'00000000000',role:'leader'},points:[],registrations:[]};
+let calls=0,failManual=true,failNews=true,created=null;
+const row=(id,name,code,going=true)=>({user_id:id,going,excuse:id==='two'?'تعارض سكشن الكيمياء':'',accommodation:'',profiles:{full_name:name,student_code:code,phone:'01012345678'}});
+await p.route('**/api/action',async route=>{
+ const req=route.request();if(req.method()==='GET')return route.fulfill({json:{events:[event,second],home:{},news:[]}});
+ const b=req.postDataJSON();
+ if(b.action==='me')return route.fulfill({json:user});
+ if(b.action==='attendees')return route.fulfill({json:{rows:b.event_id===event.id?[row('one','أحمد محمود','2527001'),row('two','مريم أحمد','2527002'),row('three','طالب ألغى','2527003',false)]:[],attendance:[{user_id:'two'}]}});
+ if(b.action==='manual'){calls++;if(failManual){failManual=false;return route.fulfill({status:503,json:{error:'تعذّر الاتصال، حاول مجددًا'}})}return route.fulfill({json:{saved:true}})}
+ if(b.action==='news'){if(failNews){failNews=false;return route.fulfill({status:503,json:{error:'تعذّر النشر'}})}return route.fulfill({json:{saved:true}})}
+ if(b.action==='create-event'){created=b;return route.fulfill({json:{id:'created-ui-event',code:'MAM1.created-ui-event.fixture-only'}})}
+ return route.fulfill({status:400,json:{error:'Fixture: operation not implemented'}});
+});
+await p.goto(base+'/?view=leader');await p.getByRole('heading',{name:'إدارة الأسرة',exact:true}).waitFor();
+assert.equal(await p.locator('.leader-event-row').count(),2);
+await p.getByRole('button',{name:'إدارة الحضور',exact:true}).first().click();
+await p.getByText('أحمد محمود',{exact:true}).waitFor();
+assert.equal(await p.locator('.leader-person').count(),2,'Cancelled users must not count as active');
+await p.getByRole('button',{name:'لم يحضر',exact:true}).click();assert.equal(await p.locator('.leader-person').count(),1);
+await p.getByRole('button',{name:'تسجيل حضور أحمد محمود',exact:true}).click();await p.getByRole('alert').filter({hasText:'تعذّر الاتصال'}).waitFor();
+assert.equal(await p.getByRole('button',{name:'تسجيل حضور أحمد محمود',exact:true}).count(),1,'Failure must leave retry available');
+await p.getByRole('button',{name:'تسجيل حضور أحمد محمود',exact:true}).click();await p.getByRole('status').filter({hasText:'تم تسجيل حضور أحمد محمود'}).waitFor();
+assert.equal(calls,2);assert.equal(await p.locator('.leader-person').count(),0,'Saved attendance leaves waiting filter');
+await p.getByRole('button',{name:'الكل',exact:true}).click();
+await p.getByRole('textbox',{name:'ابحث عن مشارك',exact:true}).fill('٢٥٢٧٠٠١');assert.equal(await p.locator('.leader-person').count(),1);
+await p.getByRole('button',{name:'مسح البحث',exact:true}).click();
+await p.getByRole('button',{name:'أعذار وتسهيلات',exact:true}).click();await p.getByText('عرض الطلبات',{exact:true}).click();await p.getByText('تعارض سكشن الكيمياء',{exact:false}).waitFor();
+const downloadPromise=p.waitForEvent('download');await p.getByRole('button',{name:'تصدير النتائج',exact:true}).click();const download=await downloadPromise;
+const stream=await download.createReadStream();let csv='';for await(const chunk of stream)csv+=chunk;assert(csv.includes('مريم أحمد'));assert(!csv.includes('أحمد محمود'));assert(!csv.includes('طالب ألغى'));
+await p.getByRole('button',{name:'ألغوا المشاركة',exact:true}).click();assert.equal(await p.locator('.leader-person').count(),1);assert.equal(await p.locator('.leader-person button.primary').count(),0);
+await p.screenshot({path:'/workspace/work/leader-roster-desktop.png',fullPage:true});
+await p.getByRole('button',{name:'العودة للإدارة',exact:true}).click();await p.getByRole('button',{name:'إدارة الحضور',exact:true}).last().click();await p.getByRole('heading',{name:'لم يسجل أحد بعد',exact:true}).waitFor();assert.equal(await p.getByText('أحمد محمود',{exact:true}).count(),0,'A new event must not retain the previous roster');
+await p.getByRole('button',{name:'العودة للإدارة',exact:true}).click();
+await p.getByRole('tab',{name:'الأخبار',exact:true}).click();await p.getByLabel('عنوان الخبر',{exact:true}).fill('عنوان محفوظ كمسودة');await p.getByLabel('التفاصيل',{exact:true}).fill('خبر تجريبي للواجهة فقط');
+await p.getByRole('button',{name:'نشر الخبر',exact:true}).click();await p.getByRole('alert').filter({hasText:'تعذّر النشر'}).waitFor();assert.equal(await p.getByLabel('عنوان الخبر',{exact:true}).inputValue(),'عنوان محفوظ كمسودة');
+await p.getByRole('tab',{name:'الصفحة الرئيسية',exact:true}).click();await p.getByRole('tab',{name:'الأخبار',exact:true}).click();assert.equal(await p.getByLabel('عنوان الخبر',{exact:true}).inputValue(),'عنوان محفوظ كمسودة');
+await p.getByRole('button',{name:'إنشاء فعالية',exact:true}).click();const dialog=p.getByRole('dialog',{name:'Create event'});await dialog.getByLabel('العنوان',{exact:true}).fill('حدث تجربة الواجهة');await p.keyboard.press('Escape');
+await p.getByRole('button',{name:'إنشاء فعالية',exact:true}).click();assert.equal(await dialog.getByLabel('العنوان',{exact:true}).inputValue(),'حدث تجربة الواجهة');
+await dialog.getByLabel('الوصف ونقطة التجمع',{exact:true}).fill('تفاصيل للمعاينة فقط');await dialog.getByLabel('المكان',{exact:true}).fill('كلية العلوم');await dialog.getByLabel('البداية',{exact:true}).fill('2026-12-05T10:00');await dialog.getByLabel('النهاية',{exact:true}).fill('2026-12-05T09:00');
+await dialog.getByRole('button',{name:'إنشاء وحفظ رمز الحضور',exact:true}).click();assert.equal(created,null,'Invalid end time must not submit');
+await dialog.getByLabel('النهاية',{exact:true}).fill('2026-12-05T12:00');await dialog.getByRole('button',{name:'إنشاء وحفظ رمز الحضور',exact:true}).click();await p.getByRole('dialog',{name:'Attendance QR'}).getByRole('link',{name:'تحميل للطباعة',exact:true}).waitFor();
+assert.equal(created.start_at,'2026-12-05T08:00:00.000Z');assert.equal(created.end_at,'2026-12-05T10:00:00.000Z');await p.getByRole('button',{name:'تم',exact:true}).click();
+await p.getByRole('tab',{name:'الفعاليات',exact:true}).click();
+for(const width of [1024,768,390,375]){await p.setViewportSize({width,height:900});assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`Overflow ${width}`)}
+await p.screenshot({path:'/workspace/work/leader-workspace-phone.png',fullPage:true});
+await p.getByRole('button',{name:'إدارة الحضور',exact:true}).first().click();await p.getByText('أحمد محمود',{exact:true}).waitFor();await p.screenshot({path:'/workspace/work/leader-roster-phone.png',fullPage:true});
+await p.getByRole('button',{name:'تغيير المظهر',exact:true}).click();await p.getByRole('button',{name:'EN',exact:true}).click();assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await p.screenshot({path:'/workspace/work/leader-roster-dark-en.png',fullPage:true});
+const studentContext=await browser.newContext({ignoreHTTPSErrors:true});
+const studentPage=await studentContext.newPage();
+await studentPage.route('**/api/action', route=>route.fulfill({json:route.request().method()==='GET'?{events:[event],home:{},news:[]}:{...user,profile:{...user.profile,role:'student'}}}));
+await studentPage.goto(base+'/?view=leader');
+await studentPage.getByRole('heading',{name:'هذه الصفحة للقادة',exact:true}).waitFor();
+assert.equal(await studentPage.locator('.leader-workspace,.leader-roster').count(),0);
+await studentContext.close();
+assert.deepEqual(errors,[]);
+console.log('PASS leader dashboard, event isolation, search, filtered export, cancellation, failed check-in retry, news drafts, creation drafts, Cairo schedule, QR, 375-1024px, dark/English');
+await browser.close();
