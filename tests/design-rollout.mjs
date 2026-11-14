@@ -4,6 +4,7 @@ const base = process.env.UI_TEST_BASE_URL || "http://localhost:3000";
 const browser = await chromium.launch({
   executablePath: "/usr/bin/chromium",
   args: ["--no-sandbox"],
+  proxy: base.startsWith("https:") && process.env.HTTPS_PROXY ? {server:process.env.HTTPS_PROXY} : undefined,
 });
 const event = {
   id: "ui-only-event",
@@ -47,6 +48,7 @@ const contrast = async (page) => {
 };
 for (const role of ["student", "leader"]) {
   const context = await browser.newContext({
+    ignoreHTTPSErrors: base.startsWith("https:"),
     viewport: { width: 1440, height: 1000 },
     colorScheme: "light",
     timezoneId: "America/Los_Angeles",
@@ -137,6 +139,7 @@ for (const role of ["student", "leader"]) {
     path: `/workspace/work/rollout-events-${role}.png`,
     fullPage: true,
   });
+  const cardTime = await page.locator(".event-card time").first().innerText();
   await page.getByRole("button", { name: /فعالية لمعاينة الواجهة/ }).click();
   await page
     .getByRole("heading", {
@@ -145,6 +148,8 @@ for (const role of ["student", "leader"]) {
       level: 1,
     })
     .waitFor();
+  const detailTime = await page.locator(".event-meta small").first().innerText();
+  assert.equal(cardTime,detailTime,"Event cards and event details must show the same Cairo time");
   await contrast(page);
   if (role === "leader") {
     await page
@@ -226,6 +231,7 @@ for (const role of ["student", "leader"]) {
   await context.close();
 }
 const context = await browser.newContext({
+  ignoreHTTPSErrors: base.startsWith("https:"),
   viewport: { width: 390, height: 844 },
 });
 const page = await context.newPage();

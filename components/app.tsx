@@ -1506,6 +1506,7 @@ function EventCard({
       <div className="event-card-copy">
         <time>
           {new Date(e.start_at).toLocaleTimeString(en ? "en-GB" : "ar-EG", {
+            timeZone: "Africa/Cairo",
             hour: "2-digit",
             minute: "2-digit",
           })}
