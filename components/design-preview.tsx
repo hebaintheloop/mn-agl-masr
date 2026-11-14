@@ -154,6 +154,7 @@ export default function DesignPreview() {
       : e.title;
   const day = (e: EventItem) =>
     new Date(e.start_at).toLocaleDateString(en ? "en-GB" : "ar-EG", {
+      timeZone: "Africa/Cairo",
       day: "numeric",
       month: "short",
     });
@@ -169,6 +170,7 @@ export default function DesignPreview() {
           {day(e)}
           <small>
             {new Date(e.start_at).toLocaleDateString(en ? "en" : "ar-EG", {
+              timeZone: "Africa/Cairo",
               weekday: "long",
             })}
           </small>
@@ -178,6 +180,7 @@ export default function DesignPreview() {
           <div className="dp-event-copy">
             <small>
               {new Date(e.start_at).toLocaleTimeString(en ? "en-GB" : "ar-EG", {
+                timeZone: "Africa/Cairo",
                 hour: "2-digit",
                 minute: "2-digit",
               })}
