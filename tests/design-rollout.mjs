@@ -82,6 +82,11 @@ for (const role of ["student", "leader"]) {
       return route.fulfill({ json: { events: [event], home: {}, news: [] } });
     const b = req.postDataJSON();
     if (b.action === "me") return route.fulfill({ json: user });
+    if (b.action === "profile") {
+      assert.deepEqual(Object.keys(b).sort(), ["action", "email", "phone"]);
+      user.profile = { ...user.profile, phone: b.phone, email: b.email };
+      return route.fulfill({ json: { saved: true, profile: { phone: b.phone, email: b.email } } });
+    }
     if (b.action === "leaderboard")
       return route.fulfill({
         json: {
@@ -125,6 +130,7 @@ for (const role of ["student", "leader"]) {
     .waitFor();
   assert.equal(await page.locator(".dp-drawn-arrow").count(), 0);
   assert.equal(await page.locator(".dp-preview-note").count(), 0);
+  assert.equal(await page.locator(".dp-welcome,.dp-media-note,.dp-label,.dp-header-note").count(), 0);
   await page.screenshot({
     path: `/workspace/work/rollout-home-${role}.png`,
     fullPage: true,
@@ -190,6 +196,17 @@ for (const role of ["student", "leader"]) {
   });
   await page.goto(base + "/?view=account");
   await page.getByRole("heading", { name: "حسابي", exact: true }).waitFor();
+  assert.equal(await page.locator('input[name="national_id"]').count(), 0);
+  const contactForm = page.locator('.panel form').first();
+  assert.deepEqual(await contactForm.locator('input').evaluateAll(els => els.map(e=>e.name).sort()), ['email','phone']);
+  await page.getByLabel('رقم الهاتف', {exact:true}).fill('01012345678');
+  await page.getByLabel('البريد الإلكتروني', {exact:true}).fill('contact@example.org');
+  await page.getByRole('button', {name:'حفظ التغييرات',exact:true}).click();
+  await page.getByText('تم حفظ بياناتك',{exact:true}).waitFor();
+  await page.reload();
+  await page.getByRole('heading',{name:'حسابي',exact:true}).waitFor();
+  assert.equal(await page.getByLabel('رقم الهاتف',{exact:true}).inputValue(),'01012345678');
+  assert.equal(await page.getByLabel('البريد الإلكتروني',{exact:true}).inputValue(),'contact@example.org');
   if (role === "leader") {
     await page.getByText("قائد الفريق", { exact: true }).waitFor();
     await page
@@ -220,6 +237,8 @@ for (const role of ["student", "leader"]) {
   await page.goto(base + "/?view=leaderboard");
   await page.getByRole("heading", { name: "المتصدرون", exact: true }).waitFor();
   await page.getByText("طالبة للمعاينة", { exact: true }).waitFor();
+  assert.equal(await page.locator('.section-kicker').count(),0);
+  assert.equal(await page.getByText('أسماء ونقاط فقط. لأن الأثر هو اللي يجمعنا.',{exact:true}).count(),0);
   await page.screenshot({
     path: `/workspace/work/rollout-leaderboard-phone-${role}.png`,
     fullPage: true,

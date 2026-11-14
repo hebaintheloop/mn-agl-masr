@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { authClient } from "@/lib/supabase";
 import { backend, BackendError } from "@/lib/backend";
 import { z } from "zod";
-import { hash, encryptIdentity } from "@/lib/security";
+import { hash } from "@/lib/security";
+import { parseContactUpdate } from "@/supabase/functions/app-backend/contact";
 export async function GET() {
   try {
     return NextResponse.json(await backend("public"), {
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
       "leaderboard",
       "rsvp",
       "scan",
-      "identity",
+      "profile",
       "create-event",
       "attendees",
       "manual",
@@ -70,6 +71,7 @@ export async function POST(req: NextRequest) {
         })
         .parse(b.home);
     }
+    if (b.action === "profile") Object.assign(b, parseContactUpdate(b));
     const client = await authClient();
     const {
       data: { session },
@@ -77,12 +79,6 @@ export async function POST(req: NextRequest) {
     if (!session)
       return NextResponse.json({ error: "Login required" }, { status: 401 });
     b._rate = { key: hash(session.user.id + b.action), limit: 90, seconds: 60 };
-    if (b.action === "identity") {
-      if (!/^\d{14}$/.test(b.national_id))
-        throw new Error("National ID must be 14 digits");
-      b.ciphertext = encryptIdentity(b.national_id);
-      delete b.national_id;
-    }
     return NextResponse.json(await backend(b.action, b, session.access_token), {
       headers: { "Cache-Control": "private, no-store" },
     });

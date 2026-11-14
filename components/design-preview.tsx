@@ -303,9 +303,6 @@ export function CommunityExperience({
               </small>
             </span>
           </button>
-          <span className="dp-header-note">
-            {t("(وعي، مهارات، مشاركة)", "(Awareness, skills, participation)")}
-          </span>
           <nav>
             <button
               className={tab === "feed" ? "is-active" : ""}
@@ -341,12 +338,6 @@ export function CommunityExperience({
       {tab === "welcome" ? (
         <ContentTag>
           <section className="dp-intro">
-            <p className="dp-welcome">
-              {t(
-                "أهلًا بك في من أجل مصر، كلية العلوم، جامعة القاهرة",
-                "Welcome to Mn Agl Masr, Faculty of Science, Cairo University",
-              )}
-            </p>
             <h1 data-hiss-reveal>
               {t("نتعلّم، نشارك،", "Learn, take part,")}
               <br />
@@ -386,18 +377,7 @@ export function CommunityExperience({
                 {paused ? <Play size={14} /> : <Pause size={14} />}
               </button>
             </div>
-            {live && (home.gallery_urls?.length || 0) < 3 && (
-              <p className="dp-media-note">
-                {t(
-                  "صور توضيحية، صور فعالياتنا قريبًا",
-                  "Illustrative photos, our faculty event photos coming soon",
-                )}
-              </p>
-            )}
             <div className="dp-intro-bottom">
-              <p>
-                {t("وعي، مهارات، مشاركة", "Awareness, skills, participation")}
-              </p>
               <button className="dp-discover" onClick={() => navigate("feed")}>
                 {t("شوف الفعاليات", "Explore events")}
                 <Arrow size={18} />
@@ -406,7 +386,6 @@ export function CommunityExperience({
           </section>
           <section className="dp-about" data-hiss-reveal>
             <div>
-              <span className="dp-label">{t("(عنّا)", "(About us)")}</span>
               <h2>
                 {t("من أجل مصر،", "Mn Agl Masr.")}
                 <br />
@@ -438,9 +417,6 @@ export function CommunityExperience({
           <section className="dp-home-events">
             <div className="dp-section-heading" data-hiss-reveal>
               <div>
-                <span className="dp-label">
-                  {t("(الفعاليات القادمة)", "(Coming up)")}
-                </span>
                 <h2>{t("نلتقي قريبًا.", "See you soon.")}</h2>
               </div>
               <button
@@ -501,9 +477,6 @@ export function CommunityExperience({
           </section>
           {news.length > 0 && (
             <section className="dp-news">
-              <span className="dp-label">
-                {t("(آخر الأخبار)", "(Latest news)")}
-              </span>
               {news.map((n) => (
                 <article key={n.id}>
                   <h3>{n.title}</h3>
@@ -513,9 +486,6 @@ export function CommunityExperience({
             </section>
           )}
           <section className="dp-last-word" data-hiss-reveal>
-            <span className="dp-label">
-              {t("(والحكاية لسه بتبدأ)", "(And this is just the beginning)")}
-            </span>
             <h2>
               {t("يلا نعمل حاجة", "Let’s make")}
               <br />
@@ -546,12 +516,6 @@ export function CommunityExperience({
               </button>
             </div>
           </div>
-          <p className="dp-feed-intro">
-            {t(
-              "طلاب من أجل مصر، كلية العلوم، جامعة القاهرة",
-              "Mn Agl Masr, Faculty of Science, Cairo University",
-            )}
-          </p>
           {sample && (
             <p className="dp-example-label">
               {t("أمثلة لعرض التصميم فقط", "Illustrative design examples only")}

@@ -1092,3 +1092,8 @@ html[lang="ar"] .dp h3 {
     height: 36px;
   }
 }
+/* The landing CTA no longer has a slogan beside it. */
+.dp-intro-bottom .dp-discover {
+  border-inline-start: 0 !important;
+  padding-inline-start: 0 !important;
+}

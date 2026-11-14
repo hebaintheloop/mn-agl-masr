@@ -32,6 +32,7 @@ type Profile = {
   full_name: string;
   student_code: string;
   phone: string;
+  email?: string | null;
   role: string;
 };
 type Registration = {
@@ -815,20 +816,9 @@ export default function App() {
         {view === "leaderboard" && me && (
           <section className="app-container narrow">
             <div className="page-heading">
-              <div>
-                <div className="section-kicker">
-                  {t("كل مشاركة بتفرق", "Every contribution matters")}
-                </div>
-                <h1>{t("المتصدرون", "Leaderboard")}</h1>
-              </div>
+              <h1>{t("المتصدرون", "Leaderboard")}</h1>
               <Trophy size={32} />
             </div>
-            <p className="muted">
-              {t(
-                "أسماء ونقاط فقط. لأن الأثر هو اللي يجمعنا.",
-                "Names and points. Celebrating the contributions that bring us together.",
-              )}
-            </p>
             <div className="leaderboard">
               {rows.length ? (
                 rows.map((r, i) => (
@@ -889,52 +879,50 @@ export default function App() {
             </div>
             <div className="panel">
               <h3>{t("بياناتك", "Your details")}</h3>
-              <p dir="ltr">{me.profile.phone}</p>
-              <p>
-                {t(
-                  "الرقم القومي محفوظ بأمان. لا يمكن عرضه بعد الإرسال.",
-                  "Your national ID is stored securely and cannot be displayed after submission.",
-                )}
-              </p>
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   const f = Object.fromEntries(new FormData(e.currentTarget));
-                  const form = e.currentTarget;
                   run(async () => {
-                    await api("identity", f);
-                    form.reset();
-                    setNotice(
-                      t("تم استبدال الرقم القومي", "National ID replaced"),
+                    const result = await api("profile", f);
+                    setMe((current) =>
+                      current
+                        ? {
+                            ...current,
+                            profile: { ...current.profile, ...result.profile },
+                          }
+                        : current,
                     );
+                    setNotice(t("تم حفظ بياناتك", "Contact details saved"));
                   });
                 }}
               >
                 <label>
-                  {t("استبدال الرقم القومي", "Replace national ID")}
+                  {t("رقم الهاتف", "Phone number")}
                   <input
-                    name="national_id"
-                    inputMode="numeric"
-                    pattern="[0-9]{14}"
-                    maxLength={14}
+                    type="tel"
+                    name="phone"
+                    dir="ltr"
+                    autoComplete="tel"
+                    defaultValue={me.profile.phone}
+                    pattern={"\\+?[0-9\\s\\-]{10,16}"}
+                    maxLength={16}
                     required
-                    autoComplete="off"
                   />
                 </label>
                 <label>
-                  {t(
-                    "كلمة المرور الحالية للتأكيد",
-                    "Current password to confirm",
-                  )}
+                  {t("البريد الإلكتروني", "Email")}
                   <input
-                    type="password"
-                    name="password"
-                    required
-                    autoComplete="current-password"
+                    type="email"
+                    name="email"
+                    dir="ltr"
+                    autoComplete="email"
+                    defaultValue={me.profile.email || ""}
+                    maxLength={254}
                   />
                 </label>
                 <button className="outline" disabled={busy}>
-                  {t("حفظ الرقم الجديد", "Save replacement")}
+                  {t("حفظ التغييرات", "Save changes")}
                 </button>
               </form>
             </div>
@@ -1108,12 +1096,6 @@ export default function App() {
             )}
           </small>
         </div>
-        <p>
-          {t(
-            "نشارك اليوم. ونصنع الغد.",
-            "Taking part today. Shaping tomorrow.",
-          )}
-        </p>
         <span>© {new Date().getFullYear()}</span>
       </footer>
       {auth && (
@@ -1216,8 +1198,8 @@ export default function App() {
                     />
                     <small>
                       {t(
-                        "14 رقمًا. لا يمكن عرضه بعد التسجيل، ويمكنك استبداله.",
-                        "14 digits. It cannot be viewed after submission; you can replace it.",
+                        "14 رقمًا. لا يمكن عرضه أو تغييره بعد التسجيل.",
+                        "14 digits. It cannot be viewed or changed after submission.",
                       )}
                     </small>
                   </label>

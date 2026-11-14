@@ -1,4 +1,5 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.119.0';
+import {parseContactUpdate} from './contact.ts';
 const db=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false}});
 const digest=async(s:string)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)))).map(x=>x.toString(16).padStart(2,'0')).join('');
 const checked=(r:any)=>{if(r.error)throw new Error(r.error.message);return r.data;};
@@ -24,12 +25,13 @@ return Response.json({saved:true});}
 const token=req.headers.get('X-User-Token');if(!token)return Response.json({error:'Login required'},{status:401});
 const {data:{user},error}=await db.auth.getUser(token);if(error||!user)return Response.json({error:'Login required'},{status:401});
 if(b._rate){const allowed=checked(await db.rpc('take_rate_limit',{p_key:await digest(user.id+a),p_limit:90,p_seconds:60}));if(!allowed)return Response.json({error:'Please wait'},{status:429});}
-const profile=checked(await db.from('profiles').select('id,full_name,student_code,phone,role').eq('id',user.id).single());const leader=profile.role==='leader';
+const profile=checked(await db.from('profiles').select('id,full_name,student_code,phone,email,role').eq('id',user.id).single());const leader=profile.role==='leader';
 if(a==='me'){const [regs,points]=await Promise.all([db.from('registrations').select('*').eq('user_id',user.id),db.from('points_ledger').select('points,event_id').eq('user_id',user.id)]);return Response.json({profile,registrations:checked(regs),points:checked(points)});}
 if(a==='leaderboard')return Response.json({rows:checked(await db.rpc('leaderboard'))});
 if(a==='rsvp'){checked(await db.from('registrations').upsert({event_id:b.event_id,user_id:user.id,going:b.going!==false,...(b.accommodation!==undefined?{accommodation:String(b.accommodation).slice(0,2000)}:{}),...(b.excuse!==undefined?{excuse:String(b.excuse).slice(0,2000)}:{}),request_status:'accepted'}));return Response.json({saved:true,status:'accepted'});}
 if(a==='scan'){const parts=String(b.code).split('.');if(parts.length!==3||parts[0]!=='MAM1')throw new Error('Invalid attendance code');return Response.json(checked(await db.rpc('check_in',{p_event:parts[1],p_user:user.id,p_actor:user.id,p_qr:await digest(parts[2])})));}
-if(a==='identity'){const {error}=await db.auth.signInWithPassword({email:user.email!,password:b.password});if(error)throw new Error('Incorrect password');checked(await db.from('identities').update({ciphertext:b.ciphertext,updated_at:new Date().toISOString()}).eq('user_id',user.id));return Response.json({saved:true});}
+if(a==='identity')return Response.json({error:'National ID updates are not allowed'},{status:403});
+if(a==='profile'){const {_rate,...input}=b;const details=parseContactUpdate(input);const updated=checked(await db.from('profiles').update(details).eq('id',user.id).select('phone,email').single());return Response.json({saved:true,profile:updated});}
 if(!leader)return Response.json({error:'Forbidden'},{status:403});
 if(a==='create-event'){const raw=crypto.randomUUID()+crypto.randomUUID();const row=checked(await db.from('events').insert({title:b.title,description:b.description,location:b.location,start_at:b.start_at,end_at:b.end_at,points:b.points,cover_url:b.cover_url||null,qr_hash:await digest(raw),created_by:user.id}).select('id').single());return Response.json({id:row.id,code:'MAM1.'+row.id+'.'+raw});}
 if(a==='attendees')return Response.json({rows:checked(await db.from('registrations').select('*,profiles!registrations_user_id_fkey(full_name,phone,student_code)').eq('event_id',b.event_id)),attendance:checked(await db.from('attendance').select('user_id,checked_at').eq('event_id',b.event_id))});
