@@ -1,0 +1,3 @@
+create function public.finish_registration(p_id uuid,p_code text,p_name text,p_phone text,p_recovery text,p_ciphertext text) returns void language plpgsql set search_path='' as $$ begin insert into public.profiles(id,student_code,full_name,phone,recovery_hash) values(p_id,p_code,p_name,p_phone,p_recovery);insert into public.identities(user_id,ciphertext) values(p_id,p_ciphertext);end $$;
+revoke all on function public.finish_registration(uuid,text,text,text,text,text) from public,anon,authenticated;
+grant execute on function public.finish_registration(uuid,text,text,text,text,text) to service_role;
