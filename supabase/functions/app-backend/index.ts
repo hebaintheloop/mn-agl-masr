@@ -5,12 +5,12 @@ const checked=(r:any)=>{if(r.error)throw new Error(r.error.message);return r.dat
 Deno.serve(async(req)=>{try{
 const {data:setting}=await db.from('app_settings').select('value').eq('key','gateway_hash').single();
 if(!setting||await digest(req.headers.get('X-App-Key')||'')!==setting.value)return Response.json({error:'Forbidden'},{status:403});
-const b=await req.json();const a=b.action;
+const b=await req.json();const a=b.action;const aliasCode=b.student_code;if(typeof b.student_code==='string'){if(!/^(?:\d{7}|\d{2}-\d{2}-\d{3})$/.test(b.student_code))throw new Error('Invalid student code');b.student_code=b.student_code.replaceAll('-','');}
 if(a==='rate')return Response.json({allowed:checked(await db.rpc('take_rate_limit',{p_key:b.key,p_limit:b.limit,p_seconds:b.seconds}))});
 if(a==='public'){const [events,news]=await Promise.all([db.from('events').select('id,title,description,location,start_at,end_at,points,cover_url').order('start_at').limit(100),db.from('news').select('*').order('created_at',{ascending:false}).limit(10)]);const {data:home}=await db.from('app_settings').select('value').eq('key','home').maybeSingle();return Response.json({events:checked(events),news:checked(news),home:home?JSON.parse(home.value):{}});}
 if(a==='signup'){
-if(!/^\d{2}-\d{2}-\d{3}$/.test(b.student_code)||typeof b.password!=='string'||b.password.length<12||typeof b.ciphertext!=='string')throw new Error('Invalid registration');
-const {data,error}=await db.auth.admin.createUser({email:b.student_code+'@members.mnagl.invalid',password:b.password,email_confirm:true});if(error)throw new Error('Unable to create account. This student code may already be registered.');
+if(!/^\d{7}$/.test(b.student_code)||typeof b.password!=='string'||b.password.length<12||typeof b.ciphertext!=='string')throw new Error('Invalid registration');
+const {data,error}=await db.auth.admin.createUser({email:aliasCode+'@members.mnagl.invalid',password:b.password,email_confirm:true});if(error)throw new Error('Unable to create account. This student code may already be registered.');
 try {checked(await db.rpc('finish_registration',{p_id:data.user.id,p_code:b.student_code,p_name:b.full_name,p_phone:b.phone,p_recovery:b.recovery_hash,p_ciphertext:b.ciphertext}));}catch(e){await db.auth.admin.deleteUser(data.user.id);throw e;}return Response.json({created:true});}
 if(a==='recover'){
 const {data:p}=await db.from('profiles').select('id,recovery_hash').eq('student_code',b.student_code).maybeSingle();

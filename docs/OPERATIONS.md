@@ -12,7 +12,7 @@ Printed QR codes can be photographed/shared; this design does not prove physical
 
 ## First leader
 
-There are no automatically promoted accounts and no hard-coded admin passwords. The owner must register a real account, identify its student code, and authorize that specific role assignment through the connected Supabase administrator. An automatic approval reviewer rejected promoting a temporary integration-test account, so successful-path live leader tests remain pending. Student access-denial tests passed.
+There are no automatically promoted accounts and no hard-coded admin passwords. The owner has now authorized leader access for their existing registered account, and that specific account was promoted. No future signup receives leader access automatically. Student access-denial tests passed; the owner can review the leader interface using their existing password.
 
 ## Media and free resources
 
@@ -35,3 +35,11 @@ Supabase leaked-password protection is disabled in the connected project's setti
 ## Deployment
 
 Production project: mn-agl-masr, Dublin compute, adjacent to the eu-west-1 database. Source uploads exclude environment secrets, local test credentials, node_modules and build output. GitHub integration currently rejects writes with `Resource not accessible by integration`; the local source and deployment are preserved independently. Connect repository Contents read/write access before enabling Git-based continuous deployment.
+
+## Seven-digit student codes
+
+Student codes now use seven digits with no separators. Existing profile codes were normalized without changing account IDs or linked records. Existing managed Auth email aliases are preserved, with a server-side password-login fallback so the original password continues to work. New accounts use the unseparated alias. Recovery and identity replacement continue to use the same underlying Auth user.
+
+## Design review
+
+`/design-preview` contains an isolated HISS-inspired welcome-page proposal and a Luma-style event feed. Illustrative photos/events are labelled; no sample events were inserted into the database. The public homepage remains available while the owner reviews the redesign.

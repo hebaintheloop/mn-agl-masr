@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { authClient } from "@/lib/supabase";
+import { signInStudent } from "@/lib/student-login";
 import { backend } from "@/lib/backend";
 import { encryptIdentity, hash, recoveryCode } from "@/lib/security";
 export async function POST(req: NextRequest) {
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
     }
     const code = z
       .string()
-      .regex(/^\d{2}-\d{2}-\d{3}$/)
+      .regex(/^\d{7}$/)
       .parse(b.student_code);
     const password = z.string().min(12).max(128).parse(b.password);
     const accountRate = await backend("rate", {
@@ -71,10 +72,12 @@ export async function POST(req: NextRequest) {
         recovery_hash: hash(recovery),
       });
     }
-    const { error } = await client.auth.signInWithPassword({
-      email: code + "@members.mnagl.invalid",
+    const { error } = await signInStudent(
+      client.auth,
+      code,
       password,
-    });
+      b.action !== "signup",
+    );
     if (error)
       return NextResponse.json(
         { error: "Check your student code and password" },

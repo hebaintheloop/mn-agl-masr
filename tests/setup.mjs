@@ -5,8 +5,8 @@ const origin = "http://localhost:3000";
 const password = randomBytes(18).toString("base64url");
 const state = { password };
 for (const [role, code] of [
-  ["student", "99-99-981"],
-  ["leader", "99-99-982"],
+  ["student", "9999981"],
+  ["leader", "9999982"],
 ]) {
   const ctx = await request.newContext({
     baseURL: origin,

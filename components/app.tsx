@@ -136,6 +136,8 @@ export default function App() {
   };
   useEffect(() => {
     setDark(document.documentElement.dataset.theme === "dark");
+    if (new URLSearchParams(location.search).get("join") === "1")
+      setAuth("signup");
     refresh().catch(() => setLoadFailed(true));
     refreshMe();
   }, []);
@@ -1344,9 +1346,10 @@ export default function App() {
                 <input
                   name="student_code"
                   dir="ltr"
-                  placeholder="25-27-646"
-                  pattern="[0-9]{2}-[0-9]{2}-[0-9]{3}"
-                  maxLength={9}
+                  placeholder="2527646"
+                  pattern="[0-9]{7}"
+                  maxLength={7}
+                  inputMode="numeric"
                   autoComplete="username"
                   required
                 />
