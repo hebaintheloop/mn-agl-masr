@@ -24,3 +24,9 @@ Successful-path live leader tests remain pending: automatic approval review reje
 Temporary test event, attendance, points and both synthetic Auth accounts were removed after verification. No real students were enrolled for testing. Test credential state is excluded from Git and deployment; tests are excluded from Vercel source uploads.
 
 Final frontend deployment: dpl_7BCRAuCifs83jsLewVDafkNTZjsy (Dublin), source 973456b547523d707c3594cee9bb92b4e75e0bba. Supabase gateway: version 6. Final deployed mobile signup UI and atomic profile/identity creation also passed using an all-zero synthetic ID and phone. The temporary recheck account was included in the previously authorized cleanup. Homepage and deployed font-license requests returned HTTP 200.
+
+## Student-code correction and redesign review
+
+Student codes now require exactly seven digits without separators. Existing profiles were normalized without changing account IDs; legacy managed Auth aliases remain supported using the original password. The owner explicitly authorized leader access for their existing account, and the database role was verified. Five unit tests and the production build passed, including password-login compatibility tests. Browser checks passed for the deployed seven-digit field and the separate `/design-preview` welcome/feed proposal, English/Arabic switching, dark mode, mobile overflow, and keyboard dialog dismissal. No real account password was requested or used by the agent. Preview sample events were not inserted into the database.
+
+Deployment: dpl_FKsB8ZRrqgRXJ3N9QbBuaQAm7YGX; frontend source 19c5254044ca4c1cf9698e9342c678a1b0fc9071; gateway version 7.
