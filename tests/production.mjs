@@ -1,6 +1,73 @@
-import {chromium,request} from '@playwright/test';
-import {readFileSync} from 'node:fs';
-import assert from 'node:assert/strict';
-const state=JSON.parse(readFileSync('.test-state.json'));const origin='https://mn-agl-masr.vercel.app';const proxy=process.env.HTTPS_PROXY?{server:process.env.HTTPS_PROXY}:undefined;
-const browser=await chromium.launch({executablePath:'/usr/bin/chromium',proxy,args:['--no-sandbox','--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream','--use-file-for-fake-video-capture=/workspace/work/mam-camera.y4m']});const context=await browser.newContext({ignoreHTTPSErrors:true,viewport:{width:1440,height:1000},permissions:['camera']});const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(origin);await page.getByRole('button',{name:'دخول',exact:true}).click();await page.locator('input[name=student_code]').fill(state.student.code);await page.locator('input[name=password]').fill(state.password);await page.getByRole('button',{name:'تسجيل الدخول',exact:true}).click();await page.getByRole('button',{name:'حسابي',exact:true}).waitFor({timeout:30000});assert((await context.cookies()).filter(c=>c.name.startsWith('sb-')).every(c=>c.secure&&c.httpOnly));await page.screenshot({path:'/workspace/work/mam-production-desktop.png',fullPage:true});await page.getByRole('button',{name:'الحضور',exact:true}).click();await page.getByRole('button',{name:'فتح الكاميرا',exact:true}).click();await page.getByRole('status').filter({hasText:'حضورك مسجل بالفعل'}).waitFor({timeout:30000});await page.setViewportSize({width:390,height:844});await page.screenshot({path:'/workspace/work/mam-production-phone.png'});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.equal(errors.length,0,JSON.stringify(errors));
-const ctx=await request.newContext({baseURL:origin,ignoreHTTPSErrors:true,proxy,storageState:await context.storageState(),extraHTTPHeaders:{Origin:origin}});const r=await ctx.post('/api/action',{data:{action:'me'}});assert.equal(r.status(),200);assert.match(r.headers()['cache-control'],/no-store/);const me=await r.json();assert.equal(me.points.find(p=>p.event_id===state.eventId).points,25);console.log('Production UI login, Secure/HttpOnly cookies, camera QR scan, persisted points, private cache headers and mobile layout passed.');await ctx.dispose();await browser.close();
+import { chromium, request } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import assert from "node:assert/strict";
+const state = JSON.parse(readFileSync(".test-state.json"));
+const origin = "https://mn-agl-masr.vercel.app";
+const proxy = process.env.HTTPS_PROXY
+  ? { server: process.env.HTTPS_PROXY }
+  : undefined;
+const browser = await chromium.launch({
+  executablePath: "/usr/bin/chromium",
+  proxy,
+  args: [
+    "--no-sandbox",
+    "--use-fake-ui-for-media-stream",
+    "--use-fake-device-for-media-stream",
+    "--use-file-for-fake-video-capture=/workspace/work/mam-camera.y4m",
+  ],
+});
+const context = await browser.newContext({
+  ignoreHTTPSErrors: true,
+  viewport: { width: 1440, height: 1000 },
+  permissions: ["camera"],
+});
+const page = await context.newPage();
+const errors = [];
+page.on("pageerror", (e) => errors.push(e.message));
+await page.goto(origin);
+await page.getByRole("button", { name: "دخول", exact: true }).click();
+await page.locator("input[name=student_code]").fill(state.student.code);
+await page.locator("input[name=password]").fill(state.password);
+await page.getByRole("button", { name: "تسجيل الدخول", exact: true }).click();
+await page
+  .getByRole("button", { name: "حسابي", exact: true })
+  .waitFor({ timeout: 30000 });
+assert(
+  (await context.cookies())
+    .filter((c) => c.name.startsWith("sb-"))
+    .every((c) => c.secure && c.httpOnly),
+);
+await page.screenshot({
+  path: "/workspace/work/mam-production-desktop.png",
+  fullPage: true,
+});
+await page.getByRole("button", { name: "الحضور", exact: true }).click();
+await page.getByRole("button", { name: "فتح الكاميرا", exact: true }).click();
+await page
+  .getByRole("status")
+  .filter({ hasText: "حضورك مسجل بالفعل" })
+  .waitFor({ timeout: 30000 });
+await page.setViewportSize({ width: 390, height: 844 });
+await page.screenshot({ path: "/workspace/work/mam-production-phone.png" });
+assert.equal(
+  await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
+  false,
+);
+assert.equal(errors.length, 0, JSON.stringify(errors));
+const ctx = await request.newContext({
+  baseURL: origin,
+  ignoreHTTPSErrors: true,
+  proxy,
+  storageState: await context.storageState(),
+  extraHTTPHeaders: { Origin: origin },
+});
+const r = await ctx.post("/api/action", { data: { action: "me" } });
+assert.equal(r.status(), 200);
+assert.match(r.headers()["cache-control"], /no-store/);
+const me = await r.json();
+assert.equal(me.points.find((p) => p.event_id === state.eventId).points, 25);
+console.log(
+  "Production UI login, Secure/HttpOnly cookies, camera QR scan, persisted points, private cache headers and mobile layout passed.",
+);
+await ctx.dispose();
+await browser.close();

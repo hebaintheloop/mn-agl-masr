@@ -30,7 +30,7 @@ Free hosting does not guarantee uninterrupted service or zero data loss. Atomic 
 
 ## Remaining provider advisories
 
-Supabase leaked-password protection is disabled in the connected project's settings. Review the provider's plan availability before enabling it; no paid setting was enabled. RLS-without-policy notices are intentional because the browser has no direct table access. A pre-existing publicly executable DDL helper trigger was restricted by a migration.
+Supabase leaked-password protection is disabled in the connected project's settings. See [Supabase password security](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection). Review the provider's plan availability before enabling it; no paid setting was enabled. RLS-without-policy notices are intentional because the browser has no direct table access. A pre-existing publicly executable DDL helper trigger was restricted by a migration.
 
 ## Deployment
 

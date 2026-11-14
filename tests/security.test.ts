@@ -1,5 +1,47 @@
-import {describe,it,expect} from 'vitest';
-import {randomBytes,createDecipheriv} from 'node:crypto';
-import {encryptIdentity,hash,recoveryCode} from '../lib/security';
-describe('National ID encryption',()=>{it('uses fresh IVs, authenticates the ciphertext, and keeps plaintext out of the stored value',()=>{process.env.NATIONAL_ID_ENCRYPTION_KEY=randomBytes(32).toString('base64url');const plain='00000000000000';const first=encryptIdentity(plain),second=encryptIdentity(plain);expect(first).not.toEqual(second);expect(first).not.toContain(plain);const raw=Buffer.from(first,'base64url');const decrypt=createDecipheriv('aes-256-gcm',Buffer.from(process.env.NATIONAL_ID_ENCRYPTION_KEY,'base64url'),raw.subarray(0,12));decrypt.setAuthTag(raw.subarray(12,28));expect(Buffer.concat([decrypt.update(raw.subarray(28)),decrypt.final()]).toString()).toBe(plain);const modified=Buffer.from(raw);modified[30]^=1;const tampered=createDecipheriv('aes-256-gcm',Buffer.from(process.env.NATIONAL_ID_ENCRYPTION_KEY,'base64url'),modified.subarray(0,12));tampered.setAuthTag(modified.subarray(12,28));tampered.update(modified.subarray(28));expect(()=>tampered.final()).toThrow();});});
-describe('Recovery codes',()=>{it('generates independent 192-bit secrets and stores only their digest',()=>{const first=recoveryCode(),second=recoveryCode();expect(Buffer.from(first,'base64url').length).toBe(24);expect(first).not.toEqual(second);expect(hash(first)).toHaveLength(64);expect(hash(first)).not.toContain(first);});});
+import { describe, it, expect } from "vitest";
+import { randomBytes, createDecipheriv } from "node:crypto";
+import { encryptIdentity, hash, recoveryCode } from "../lib/security";
+describe("National ID encryption", () => {
+  it("uses fresh IVs, authenticates the ciphertext, and keeps plaintext out of the stored value", () => {
+    process.env.NATIONAL_ID_ENCRYPTION_KEY =
+      randomBytes(32).toString("base64url");
+    const plain = "00000000000000";
+    const first = encryptIdentity(plain),
+      second = encryptIdentity(plain);
+    expect(first).not.toEqual(second);
+    expect(first).not.toContain(plain);
+    const raw = Buffer.from(first, "base64url");
+    const decrypt = createDecipheriv(
+      "aes-256-gcm",
+      Buffer.from(process.env.NATIONAL_ID_ENCRYPTION_KEY, "base64url"),
+      raw.subarray(0, 12),
+    );
+    decrypt.setAuthTag(raw.subarray(12, 28));
+    expect(
+      Buffer.concat([
+        decrypt.update(raw.subarray(28)),
+        decrypt.final(),
+      ]).toString(),
+    ).toBe(plain);
+    const modified = Buffer.from(raw);
+    modified[30] ^= 1;
+    const tampered = createDecipheriv(
+      "aes-256-gcm",
+      Buffer.from(process.env.NATIONAL_ID_ENCRYPTION_KEY, "base64url"),
+      modified.subarray(0, 12),
+    );
+    tampered.setAuthTag(modified.subarray(12, 28));
+    tampered.update(modified.subarray(28));
+    expect(() => tampered.final()).toThrow();
+  });
+});
+describe("Recovery codes", () => {
+  it("generates independent 192-bit secrets and stores only their digest", () => {
+    const first = recoveryCode(),
+      second = recoveryCode();
+    expect(Buffer.from(first, "base64url").length).toBe(24);
+    expect(first).not.toEqual(second);
+    expect(hash(first)).toHaveLength(64);
+    expect(hash(first)).not.toContain(first);
+  });
+});

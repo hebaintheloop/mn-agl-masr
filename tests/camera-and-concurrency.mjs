@@ -1,7 +1,68 @@
-import {request,chromium} from '@playwright/test';
-import {readFileSync} from 'node:fs';
-import assert from 'node:assert/strict';
-const state=JSON.parse(readFileSync('.test-state.json'));const origin='http://localhost:3000';
-const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox','--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream','--use-file-for-fake-video-capture=/workspace/work/mam-camera.y4m']});
-const context=await browser.newContext({storageState:state.student.storage,permissions:['camera'],viewport:{width:390,height:844}});const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(origin);await page.getByRole('button',{name:'الحضور',exact:true}).click();await page.getByRole('button',{name:'فتح الكاميرا',exact:true}).click();await page.getByRole('status').filter({hasText:/تم حفظ حضورك ونقاطك|حضورك مسجل بالفعل/}).waitFor({timeout:30000});assert.equal(errors.length,0,JSON.stringify(errors));await page.screenshot({path:'/workspace/work/mam-camera-success.png'});console.log('In-app camera decoded the printed-format QR and confirmed saved attendance on mobile.');
-const ctx=await request.newContext({baseURL:origin,storageState:state.student.storage,extraHTTPHeaders:{Origin:origin}});const start=Date.now();const results=await Promise.all(Array.from({length:50},()=>ctx.post('/api/action',{data:{action:'scan',code:'MAM1.'+state.eventId+'.'+state.qrToken}})));const bodies=await Promise.all(results.map(r=>r.json()));assert(results.every(r=>r.ok()),JSON.stringify(bodies.filter(b=>b.error)));assert(bodies.every(b=>b.saved&&b.alreadyRecorded&&b.points===0));const me=await (await ctx.post('/api/action',{data:{action:'me'}})).json();assert.equal(me.points.filter(p=>p.event_id===state.eventId).length,1);assert.equal(me.points.find(p=>p.event_id===state.eventId).points,25);console.log('50 simultaneous retries succeeded without duplicate points; duration '+(Date.now()-start)+'ms.');await ctx.dispose();await browser.close();
+import { request, chromium } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import assert from "node:assert/strict";
+const state = JSON.parse(readFileSync(".test-state.json"));
+const origin = "http://localhost:3000";
+const browser = await chromium.launch({
+  executablePath: "/usr/bin/chromium",
+  args: [
+    "--no-sandbox",
+    "--use-fake-ui-for-media-stream",
+    "--use-fake-device-for-media-stream",
+    "--use-file-for-fake-video-capture=/workspace/work/mam-camera.y4m",
+  ],
+});
+const context = await browser.newContext({
+  storageState: state.student.storage,
+  permissions: ["camera"],
+  viewport: { width: 390, height: 844 },
+});
+const page = await context.newPage();
+const errors = [];
+page.on("pageerror", (e) => errors.push(e.message));
+await page.goto(origin);
+await page.getByRole("button", { name: "الحضور", exact: true }).click();
+await page.getByRole("button", { name: "فتح الكاميرا", exact: true }).click();
+await page
+  .getByRole("status")
+  .filter({ hasText: /تم حفظ حضورك ونقاطك|حضورك مسجل بالفعل/ })
+  .waitFor({ timeout: 30000 });
+assert.equal(errors.length, 0, JSON.stringify(errors));
+await page.screenshot({ path: "/workspace/work/mam-camera-success.png" });
+console.log(
+  "In-app camera decoded the printed-format QR and confirmed saved attendance on mobile.",
+);
+const ctx = await request.newContext({
+  baseURL: origin,
+  storageState: state.student.storage,
+  extraHTTPHeaders: { Origin: origin },
+});
+const start = Date.now();
+const results = await Promise.all(
+  Array.from({ length: 50 }, () =>
+    ctx.post("/api/action", {
+      data: {
+        action: "scan",
+        code: "MAM1." + state.eventId + "." + state.qrToken,
+      },
+    }),
+  ),
+);
+const bodies = await Promise.all(results.map((r) => r.json()));
+assert(
+  results.every((r) => r.ok()),
+  JSON.stringify(bodies.filter((b) => b.error)),
+);
+assert(bodies.every((b) => b.saved && b.alreadyRecorded && b.points === 0));
+const me = await (
+  await ctx.post("/api/action", { data: { action: "me" } })
+).json();
+assert.equal(me.points.filter((p) => p.event_id === state.eventId).length, 1);
+assert.equal(me.points.find((p) => p.event_id === state.eventId).points, 25);
+console.log(
+  "50 simultaneous retries succeeded without duplicate points; duration " +
+    (Date.now() - start) +
+    "ms.",
+);
+await ctx.dispose();
+await browser.close();
