@@ -23,4 +23,4 @@ Successful-path live leader tests remain pending: automatic approval review reje
 
 Temporary test event, attendance, points and both synthetic Auth accounts were removed after verification. No real students were enrolled for testing. Test credential state is excluded from Git and deployment; tests are excluded from Vercel source uploads.
 
-Frontend deployment: dpl_GvnwiMbWx8vi5XVD9Tv6Hx6bjWR2 (Dublin). Supabase gateway: version 6. Frontend source: 98c008cf6cf65db3fa44ea0cd63b11a2b4b3b4fa; subsequent changes contain verification evidence, isolated backend rate-key hardening, and database indexes.
+Final frontend deployment: dpl_7BCRAuCifs83jsLewVDafkNTZjsy (Dublin), source 973456b547523d707c3594cee9bb92b4e75e0bba. Supabase gateway: version 6. Final deployed mobile signup UI and atomic profile/identity creation also passed using an all-zero synthetic ID and phone. The temporary recheck account was included in the previously authorized cleanup. Homepage and deployed font-license requests returned HTTP 200.
