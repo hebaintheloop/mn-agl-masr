@@ -136,6 +136,8 @@ export default function App() {
     setDark(document.documentElement.dataset.theme === "dark");
     if (new URLSearchParams(location.search).get("join") === "1")
       setAuth("signup");
+    else if (new URLSearchParams(location.search).get("login") === "1")
+      setAuth("login");
     refresh().catch(() => setLoadFailed(true));
     refreshMe();
   }, []);

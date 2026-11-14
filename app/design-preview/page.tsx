@@ -1,4 +1,4 @@
-import DesignPreview from "@/components/design-preview";
+import NonprofitPreview from "@/components/nonprofit-preview";
 export default function Page() {
-  return <DesignPreview />;
+  return <NonprofitPreview />;
 }
