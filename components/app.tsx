@@ -16,6 +16,7 @@ import {
   LoaderCircle,
   Download,
   Users,
+  Shirt,
 } from "lucide-react";
 import { CommunityExperience } from "./design-preview";
 import { LeaderWorkspace } from "./leader-workspace";
@@ -30,6 +31,7 @@ type EventItem = {
   end_at: string;
   points: number;
   cover_url: string | null;
+  dress_code?: string;
 };
 type Profile = {
   id: string;
@@ -611,6 +613,15 @@ export default function App() {
                 <MapPin />
                 <div>{selected.location}</div>
               </div>
+              {selected.dress_code && (
+                <div className="event-meta">
+                  <Shirt />
+                  <div>
+                    <small>{t("الزي المطلوب", "Dress code")}</small>
+                    {selected.dress_code}
+                  </div>
+                </div>
+              )}
               <div className="event-meta">
                 <Trophy />
                 <span className="status-label status-points">
@@ -1335,6 +1346,18 @@ export default function App() {
                   minLength={2}
                   maxLength={300}
                   defaultValue={eventDraft.location}
+                />
+              </label>
+              <label>
+                {t("الزي المطلوب (اختياري)", "Dress code (optional)")}
+                <input
+                  name="dress_code"
+                  maxLength={300}
+                  defaultValue={eventDraft.dress_code}
+                  placeholder={t(
+                    "مثال: ملابس رسمية أو كاجوال",
+                    "For example: formal or casual",
+                  )}
                 />
               </label>
               <p className="leader-create-help">

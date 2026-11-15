@@ -17,6 +17,7 @@ export type LeaderEvent = {
   end_at: string;
   points: number;
   cover_url: string | null;
+  dress_code?: string;
 };
 type Row = {
   user_id: string;

@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
           title: z.string().trim().min(2).max(200),
           description: z.string().max(5000),
           location: z.string().trim().min(2).max(300),
+          dress_code: z.string().trim().max(300).optional(),
           start_at: z.iso.datetime(),
           end_at: z.iso.datetime(),
           points: z.number().int().min(0).max(10000),
@@ -54,6 +55,7 @@ export async function POST(req: NextRequest) {
             .optional(),
         })
         .parse(b);
+      b.dress_code = ev.dress_code || "";
       if (new Date(ev.end_at) <= new Date(ev.start_at))
         throw new Error("End time must be after start time");
     }

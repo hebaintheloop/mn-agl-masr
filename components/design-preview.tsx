@@ -11,6 +11,7 @@ import {
   Play,
   X,
   Check,
+  Shirt,
 } from "lucide-react";
 import "./design-preview.css";
 import { HissImageStack, useHissReveals } from "./hiss-motion";
@@ -23,6 +24,7 @@ type EventItem = {
   end_at: string;
   points: number;
   cover_url: string | null;
+  dress_code?: string;
 };
 const examples: EventItem[] = [
   {
@@ -604,6 +606,15 @@ export function CommunityExperience({
                   )
                 : selected.location}
             </p>
+            {selected.dress_code && (
+              <p className="dp-dialog-meta">
+                <Shirt size={18} />
+                <span>
+                  {t("الزي المطلوب: ", "Dress code: ")}
+                  {selected.dress_code}
+                </span>
+              </p>
+            )}
             <p>{selected.description}</p>
             <span className="dp-points">
               <Check size={15} />+{selected.points}{" "}
