@@ -24,3 +24,11 @@ Uploads accept JPEG, PNG and WebP, redraw to JPEG to remove metadata, resize to 
 - Real storage configuration was inspected and an anonymous write was denied by RLS. Browser transfer tests intercept storage requests; no real student credentials or production test accounts were used.
 
 Signed event image URLs are temporary bearer links and remain usable until expiry. Previously public external cover links cannot become private through this application. Public past-event data remains available; the Events tab requires login.
+
+## Production verification, 16 November 2026, Cairo
+
+Source commit `0611cc1` deployed READY as `dpl_A54jyqZu9LafpHbhS8fRwhHT25eU` at https://mn-agl-masr.vercel.app/. Supabase gateway version 11 and migration `20261115224029` are active.
+
+The browser fixture suite also passed against the production frontend. Actual unauthenticated production API probes verified that upcoming events are absent, private event/upload/read actions return 401, and forged upload bucket/path fields return 400. No error/fatal runtime logs were returned for the initial five-minute deployment window. All 26 unit tests and the attendance, leader UX, password visibility, design rollout and HISS motion browser regressions passed locally.
+
+No production student accounts, attendance or news were created during verification. Source is committed locally and archived separately; this deployment used direct source upload, not a GitHub push.
