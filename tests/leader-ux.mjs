@@ -23,7 +23,7 @@ await p.goto(base+'/?view=leader');await p.getByRole('heading',{name:'إدارة
 assert.equal(await p.locator('.leader-event-row').count(),2);
 await p.getByRole('button',{name:'إدارة الحضور',exact:true}).first().click();
 await p.getByText('أحمد محمود',{exact:true}).waitFor();
-await p.getByText('ملابس رسمية',{exact:true}).waitFor();
+await p.locator('.event-meta').filter({hasText:'ملابس رسمية'}).waitFor();
 assert.equal(await p.locator('.leader-person').count(),2,'Cancelled users must not count as active');
 await p.getByRole('button',{name:'لم يحضر',exact:true}).click();assert.equal(await p.locator('.leader-person').count(),1);
 await p.getByRole('button',{name:'تسجيل حضور أحمد محمود',exact:true}).click();await p.getByRole('alert').filter({hasText:'تعذّر الاتصال'}).waitFor();
@@ -61,7 +61,7 @@ await studentPage.goto(base+'/?view=leader');
 await studentPage.getByRole('heading',{name:'هذه الصفحة للقادة',exact:true}).waitFor();
 assert.equal(await studentPage.locator('.leader-workspace,.leader-roster').count(),0);
 await studentPage.goto(base+'/?event='+event.id);
-await studentPage.getByText('ملابس رسمية',{exact:true}).waitFor();
+await studentPage.locator('.event-meta').filter({hasText:'ملابس رسمية'}).waitFor();
 await studentPage.goto(base+'/?event='+second.id);
 await studentPage.getByRole('heading',{name:'ورشة التنظيم',exact:true,level:1}).waitFor();
 assert.equal(await studentPage.getByText('الزي المطلوب',{exact:true}).count(),0);
