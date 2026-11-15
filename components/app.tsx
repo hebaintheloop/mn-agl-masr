@@ -18,6 +18,7 @@ import {
   Users,
   Shirt,
 } from "lucide-react";
+import { PasswordField } from "./password-field";
 import { CommunityExperience } from "./design-preview";
 import { LeaderWorkspace } from "./leader-workspace";
 import { LeaderAttendance } from "./leader-attendance";
@@ -1128,24 +1129,7 @@ export default function App() {
                   />
                 </label>
               )}
-              <label>
-                {auth === "recover"
-                  ? t("كلمة المرور الجديدة", "New password")
-                  : t("كلمة المرور", "Password")}
-                <input
-                  name="password"
-                  type="password"
-                  minLength={12}
-                  maxLength={128}
-                  autoComplete={
-                    auth === "login" ? "current-password" : "new-password"
-                  }
-                  required
-                />
-                <small>
-                  {t("12 حرفًا على الأقل", "At least 12 characters")}
-                </small>
-              </label>
+              <PasswordField key={auth} mode={auth} />
               {error && (
                 <p className="form-error" role="alert">
                   {error}

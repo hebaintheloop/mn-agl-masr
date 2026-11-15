@@ -1313,3 +1313,39 @@ textarea {
   width: fit-content;
   margin-top: 10px;
 }
+.password-field {
+  margin-bottom: 17px;
+}
+.password-field > label {
+  margin-bottom: 7px;
+}
+.password-input {
+  position: relative;
+}
+.auth-modal .password-input input {
+  padding-inline-end: 52px;
+  min-height: 48px;
+}
+.password-toggle {
+  position: absolute;
+  inset-inline-end: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--muted);
+}
+.password-toggle:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+.password-field > small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.6;
+  margin-top: 7px;
+}
