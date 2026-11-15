@@ -20,11 +20,15 @@ export type LeaderEvent = {
   dress_code?: string;
 };
 type Row = {
-  user_id: string;
+  user_id: string | null;
   going: boolean;
   excuse: string;
   accommodation: string;
   present: boolean;
+  has_rsvp?: boolean;
+  registered_before?: boolean;
+  pending_account?: boolean;
+  points?: number;
   profiles: { full_name: string; phone: string; student_code: string };
 };
 export type LeaderApi = (
@@ -55,6 +59,9 @@ export function LeaderAttendance({
     const timer = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(timer);
   }, []);
+  const [code, setCode] = useState(""),
+    [adding, setAdding] = useState(false);
+  const addBusy = useRef(false);
   const [open, setOpen] = useState(initialOpen),
     [rows, setRows] = useState<Row[]>([]),
     [loaded, setLoaded] = useState(false),
@@ -85,7 +92,10 @@ export function LeaderAttendance({
         d.attendance.map((a: { user_id: string }) => a.user_id),
       );
       setRows(
-        d.rows.map((r: Row) => ({ ...r, present: present.has(r.user_id) })),
+        d.rows.map((r: Row) => ({
+          ...r,
+          present: r.present ?? present.has(r.user_id),
+        })),
       );
       setLoaded(true);
     } catch (e) {
@@ -103,8 +113,9 @@ export function LeaderAttendance({
     if (open && !loaded) load();
   }, [open]);
   async function checkIn(row: Row) {
-    if (inflight.current.has(row.user_id)) return;
-    inflight.current.add(row.user_id);
+    if (!row.user_id || inflight.current.has(row.user_id)) return;
+    const userId = row.user_id;
+    inflight.current.add(userId);
     setPending(new Set(inflight.current));
     setError("");
     setNotice("");
@@ -133,12 +144,16 @@ export function LeaderAttendance({
               ),
         );
     } finally {
-      inflight.current.delete(row.user_id);
+      inflight.current.delete(userId);
       if (mounted.current) setPending(new Set(inflight.current));
     }
   }
-  const active = rows.filter((r) => r.going !== false),
-    present = active.filter((r) => r.present).length,
+  const active = rows.filter((r) => r.going !== false || r.present),
+    rsvpCount = rows.filter((r) => r.has_rsvp ?? r.going !== false).length,
+    present = rows.filter((r) => r.present).length,
+    waiting = rows.filter(
+      (r) => (r.has_rsvp ?? r.going !== false) && !r.present,
+    ).length,
     requests = active.filter((r) => r.excuse || r.accommodation).length;
   const list = (
     filter === "cancelled" ? rows.filter((r) => r.going === false) : active
@@ -159,9 +174,46 @@ export function LeaderAttendance({
           (s) => normalize(s).includes(normalize(query)),
         ),
     );
-  const attendanceOpen =
-    now >= new Date(event.start_at).getTime() - 3600000 &&
-    now <= new Date(event.end_at).getTime() + 3600000;
+  const attendanceOpen = now >= new Date(event.start_at).getTime() - 3600000;
+  async function addCode(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (addBusy.current) return;
+    const normalized = code
+      .trim()
+      .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+    if (!/^[0-9]{7}$/.test(normalized)) {
+      setError("كود الطالب يجب أن يكون 7 أرقام دون شرطات");
+      return;
+    }
+    addBusy.current = true;
+    setAdding(true);
+    setError("");
+    setNotice("");
+    try {
+      const result = await api("manual-code", {
+        event_id: event.id,
+        student_code: normalized,
+      });
+      if (!mounted.current) return;
+      setCode("");
+      setNotice(
+        result.alreadyRecorded
+          ? "الحضور مسجل بالفعل لهذا الكود، لم تُضف نقاط مكررة."
+          : result.pendingAccount
+            ? `تم حفظ حضور ${normalized}، و${result.points} نقطة ستُضاف تلقائيًا عند إنشاء حسابه.`
+            : `تم تسجيل حضور ${normalized} وإضافة نقاطه.`,
+      );
+      await load();
+    } catch (e) {
+      if (mounted.current)
+        setError(
+          e instanceof Error ? e.message : "لم يُحفظ الحضور، حاول مجددًا",
+        );
+    } finally {
+      addBusy.current = false;
+      if (mounted.current) setAdding(false);
+    }
+  }
   function download() {
     const fields = en
       ? [
@@ -172,6 +224,7 @@ export function LeaderAttendance({
           "Academic excuse",
           "RSVP",
           "Attended",
+          "Account",
         ]
       : [
           "الاسم",
@@ -181,6 +234,7 @@ export function LeaderAttendance({
           "العذر الأكاديمي",
           "التسجيل",
           "الحضور",
+          "الحساب",
         ];
     const csv =
       "\uFEFF" +
@@ -192,8 +246,13 @@ export function LeaderAttendance({
           r.profiles.phone,
           r.accommodation,
           r.excuse,
-          r.going === false ? t("ملغي", "Cancelled") : t("مسجل", "Registered"),
+          r.going === false
+            ? t("ملغي", "Cancelled")
+            : r.registered_before === false
+              ? "بدون تسجيل مسبق"
+              : t("مسجل", "Registered"),
           r.present ? t("حاضر", "Present") : t("لم يحضر", "Not checked in"),
+          r.pending_account ? "بانتظار إنشاء الحساب" : "حساب موجود",
         ]),
       ]
         .map((row) =>
@@ -238,7 +297,7 @@ export function LeaderAttendance({
           {loaded && (
             <div className="roster-stats">
               <span>
-                <b>{active.length}</b>
+                <b>{rsvpCount}</b>
                 {t("مسجل", "Registered")}
               </span>
               <span>
@@ -246,7 +305,7 @@ export function LeaderAttendance({
                 {t("حاضر", "Present")}
               </span>
               <span>
-                <b>{active.length - present}</b>
+                <b>{waiting}</b>
                 {t("لم يحضر بعد", "Not checked in")}
               </span>
               <span>
@@ -255,6 +314,38 @@ export function LeaderAttendance({
               </span>
             </div>
           )}
+          <form className="leader-add-code" onSubmit={addCode}>
+            <label htmlFor={"add-code-" + event.id}>
+              إضافة حضور بكود الطالب
+            </label>
+            <div>
+              <input
+                id={"add-code-" + event.id}
+                name="student_code"
+                inputMode="numeric"
+                dir="ltr"
+                pattern="[0-9٠-٩]{7}"
+                maxLength={16}
+                required
+                placeholder="2527646"
+                autoComplete="off"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+              />
+              <button className="primary" disabled={adding || pending.size > 0 || !attendanceOpen}>
+                {adding ? (
+                  <LoaderCircle size={16} className="spin" />
+                ) : (
+                  <Check size={16} />
+                )}
+                تسجيل الحضور
+              </button>
+            </div>
+            <small>
+              الكود فقط، حتى لو لم يسجل في الفعالية. لو حسابه لم يُنشأ بعد،
+              تُحفظ النقاط لحين إنشائه.
+            </small>
+          </form>
           <div className="roster-tools">
             <label className="leader-search">
               <Search size={18} />
@@ -279,7 +370,7 @@ export function LeaderAttendance({
             <button
               className="outline"
               onClick={load}
-              disabled={loading || pending.size > 0}
+              disabled={loading || adding || pending.size > 0}
               aria-label={t("تحديث المشاركين", "Refresh attendees")}
             >
               <RefreshCw size={16} className={loading ? "spin" : ""} />
@@ -339,7 +430,7 @@ export function LeaderAttendance({
                 {!attendanceOpen && (
                   <p className="leader-help">
                     {t(
-                      "تسجيل الحضور متاح من ساعة قبل البداية وحتى ساعة بعد النهاية.",
+                      "تسجيل الحضور يبدأ قبل الفعالية بساعة. يمكن للقادة إضافة حضور الفعاليات السابقة.",
                       "Check-in opens one hour before the event and closes one hour after it ends.",
                     )}
                   </p>
@@ -350,18 +441,30 @@ export function LeaderAttendance({
                 </div>
                 {list.length ? (
                   list.map((r) => (
-                    <article className="leader-person" key={r.user_id}>
+                    <article
+                      className="leader-person"
+                      key={r.profiles.student_code}
+                    >
                       <div className="leader-person-top">
                         <div>
-                          <h4>{r.profiles.full_name}</h4>
+                          <h4>
+                            {r.profiles.full_name ||
+                              "كود الطالب " + r.profiles.student_code}
+                          </h4>
                           <div className="leader-person-contact">
                             <span dir="ltr">{r.profiles.student_code}</span>
-                            <a dir="ltr" href={"tel:" + r.profiles.phone}>
-                              {r.profiles.phone}
-                            </a>
+                            {r.profiles.phone && (
+                              <a dir="ltr" href={"tel:" + r.profiles.phone}>
+                                {r.profiles.phone}
+                              </a>
+                            )}
                           </div>
                         </div>
-                        {r.present ? (
+                        {r.pending_account ? (
+                          <span className="status-label status-confirmed">
+                            {r.points} نقطة محفوظة
+                          </span>
+                        ) : r.present ? (
                           <span className="status-label status-confirmed">
                             <Check size={14} />
                             {t("حاضر", "Present")}
@@ -369,14 +472,16 @@ export function LeaderAttendance({
                         ) : r.going !== false ? (
                           <button
                             className="primary"
-                            disabled={pending.has(r.user_id) || !attendanceOpen}
+                            disabled={
+                              adding || pending.has(r.user_id || "") || !attendanceOpen
+                            }
                             onClick={() => checkIn(r)}
                             aria-label={
                               t("تسجيل حضور ", "Check in ") +
                               r.profiles.full_name
                             }
                           >
-                            {pending.has(r.user_id) ? (
+                            {pending.has(r.user_id || "") ? (
                               <LoaderCircle size={16} className="spin" />
                             ) : (
                               <Check size={16} />
@@ -389,6 +494,15 @@ export function LeaderAttendance({
                           </span>
                         )}
                       </div>
+                      {r.pending_account && (
+                        <p className="leader-help">
+                          لم يُنشئ حسابه بعد، ستُربط النقاط تلقائيًا عند التسجيل
+                          بهذا الكود.
+                        </p>
+                      )}
+                      {r.registered_before === false && (
+                        <span className="leader-help">بدون تسجيل مسبق</span>
+                      )}
                       {(r.excuse || r.accommodation) && (
                         <div className="leader-person-requests">
                           <span className="status-label status-confirmed">

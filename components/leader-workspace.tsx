@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Plus,
   Search,
@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Check,
   LoaderCircle,
+  RefreshCw,
 } from "lucide-react";
 import type { LeaderApi, LeaderEvent } from "./leader-attendance";
 import "./leader.css";
@@ -64,6 +65,48 @@ export function LeaderWorkspace({
     const timer = setTimeout(() => setCopied(""), 2500);
     return () => clearTimeout(timer);
   }, [copied]);
+  const [eventStats, setEventStats] = useState<
+    Record<
+      string,
+      { rsvp_count: number; attended_count: number; pending_count: number }
+    >
+  >({});
+  const [statsLoading, setStatsLoading] = useState(false),
+    [statsError, setStatsError] = useState("");
+  const statsBusy = useRef(false),
+    statsMounted = useRef(true);
+  async function loadStats() {
+    if (statsBusy.current) return;
+    statsBusy.current = true;
+    setStatsLoading(true);
+    setStatsError("");
+    try {
+      const d = await api("event-stats");
+      if (statsMounted.current)
+        setEventStats(
+          Object.fromEntries(d.rows.map((r: any) => [r.event_id, r])),
+        );
+    } catch {
+      if (statsMounted.current)
+        setStatsError(
+          "تعذّر تحديث الأعداد. اضغط تحديث الأعداد للمحاولة مجددًا.",
+        );
+    } finally {
+      statsBusy.current = false;
+      if (statsMounted.current) setStatsLoading(false);
+    }
+  }
+  useEffect(() => {
+    statsMounted.current = true;
+    loadStats();
+    const timer = setInterval(() => {
+      if (!document.hidden) loadStats();
+    }, 30000);
+    return () => {
+      statsMounted.current = false;
+      clearInterval(timer);
+    };
+  }, [api]);
   const list = events
     .filter((e) =>
       past ? new Date(e.end_at) < new Date() : new Date(e.end_at) >= new Date(),
@@ -221,6 +264,21 @@ export function LeaderWorkspace({
             />
           </label>
         </div>
+        <div className="leader-count-refresh">
+          <button
+            className="outline"
+            onClick={loadStats}
+            disabled={statsLoading}
+          >
+            <RefreshCw size={16} className={statsLoading ? "spin" : ""} />
+            {statsLoading ? "جارٍ تحديث الأعداد…" : "تحديث الأعداد"}
+          </button>
+          {statsError && (
+            <p role="alert" className="leader-help">
+              {statsError}
+            </p>
+          )}
+        </div>
         {copyError && (
           <p role="alert" className="leader-error">
             {copyError}
@@ -261,6 +319,34 @@ export function LeaderWorkspace({
                   <span className="status-label status-points">
                     {e.points} {t("نقطة", "points")}
                   </span>
+                  <div
+                    className="leader-event-counts"
+                    aria-label="أعداد المشاركة والحضور"
+                  >
+                    <span>
+                      <b>
+                        {eventStats[e.id]?.rsvp_count ??
+                          (statsLoading ? "..." : "غير متاح")}
+                      </b>{" "}
+                      أكدوا المشاركة
+                    </span>
+                    {(new Date(e.start_at) <= new Date() ||
+                      (eventStats[e.id]?.attended_count || 0) > 0) && (
+                      <span>
+                        <b>
+                          {eventStats[e.id]?.attended_count ??
+                            (statsLoading ? "..." : "غير متاح")}
+                        </b>{" "}
+                        حضروا
+                      </span>
+                    )}
+                    {(eventStats[e.id]?.pending_count || 0) > 0 && (
+                      <span className="leader-help">
+                        {eventStats[e.id].pending_count} بانتظار إنشاء الحساب،
+                        ضمن الحضور
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="leader-event-actions">
                   <button

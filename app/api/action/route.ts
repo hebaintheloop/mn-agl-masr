@@ -4,6 +4,7 @@ import { backend, BackendError } from "@/lib/backend";
 import { z } from "zod";
 import { hash } from "@/lib/security";
 import { parseContactUpdate } from "@/supabase/functions/app-backend/contact";
+import { normalizeStudentCode } from "@/supabase/functions/app-backend/student-code";
 export async function GET() {
   try {
     return NextResponse.json(await backend("public"), {
@@ -35,11 +36,24 @@ export async function POST(req: NextRequest) {
       "create-event",
       "attendees",
       "manual",
+      "manual-code",
+      "event-stats",
       "news",
       "home",
     ];
     if (!allowed.includes(b.action))
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    if (b.action === "manual-code") {
+      const entry = z
+        .object({
+          action: z.literal("manual-code"),
+          event_id: z.uuid(),
+          student_code: z.string(),
+        })
+        .strict()
+        .parse(b);
+      b.student_code = normalizeStudentCode(entry.student_code);
+    }
     if (b.action === "create-event") {
       const ev = z
         .object({

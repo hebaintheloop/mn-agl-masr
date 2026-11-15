@@ -1,12 +1,13 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.119.0';
 import {parseContactUpdate} from './contact.ts';
+import {normalizeStudentCode} from './student-code.ts';
 const db=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false}});
 const digest=async(s:string)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)))).map(x=>x.toString(16).padStart(2,'0')).join('');
 const checked=(r:any)=>{if(r.error)throw new Error(r.error.message);return r.data;};
 Deno.serve(async(req)=>{try{
 const {data:setting}=await db.from('app_settings').select('value').eq('key','gateway_hash').single();
 if(!setting||await digest(req.headers.get('X-App-Key')||'')!==setting.value)return Response.json({error:'Forbidden'},{status:403});
-const b=await req.json();const a=b.action;const aliasCode=b.student_code;if(typeof b.student_code==='string'){if(!/^(?:\d{7}|\d{2}-\d{2}-\d{3})$/.test(b.student_code))throw new Error('Invalid student code');b.student_code=b.student_code.replaceAll('-','');}
+const b=await req.json();const a=b.action;if(a==='manual-code')b.student_code=normalizeStudentCode(b.student_code);const aliasCode=b.student_code;if(typeof b.student_code==='string'){if(!/^(?:\d{7}|\d{2}-\d{2}-\d{3})$/.test(b.student_code))throw new Error('Invalid student code');b.student_code=b.student_code.replaceAll('-','');}
 if(a==='rate')return Response.json({allowed:checked(await db.rpc('take_rate_limit',{p_key:b.key,p_limit:b.limit,p_seconds:b.seconds}))});
 if(a==='public'){const [events,news]=await Promise.all([db.from('events').select('id,title,description,location,start_at,end_at,points,cover_url,dress_code').order('start_at').limit(100),db.from('news').select('*').order('created_at',{ascending:false}).limit(10)]);const {data:home}=await db.from('app_settings').select('value').eq('key','home').maybeSingle();return Response.json({events:checked(events),news:checked(news),home:home?JSON.parse(home.value):{}});}
 if(a==='signup'){
@@ -34,8 +35,10 @@ if(a==='identity')return Response.json({error:'National ID updates are not allow
 if(a==='profile'){const {_rate,...input}=b;const details=parseContactUpdate(input);const updated=checked(await db.from('profiles').update(details).eq('id',user.id).select('phone,email').single());return Response.json({saved:true,profile:updated});}
 if(!leader)return Response.json({error:'Forbidden'},{status:403});
 if(a==='create-event'){const dressCode=b.dress_code===undefined?'':b.dress_code;if(typeof dressCode!=='string'||dressCode.length>300)throw new Error('Dress code must be at most 300 characters');const raw=crypto.randomUUID()+crypto.randomUUID();const row=checked(await db.from('events').insert({title:b.title,description:b.description,location:b.location,dress_code:dressCode.trim(),start_at:b.start_at,end_at:b.end_at,points:b.points,cover_url:b.cover_url||null,qr_hash:await digest(raw),created_by:user.id}).select('id').single());return Response.json({id:row.id,code:'MAM1.'+row.id+'.'+raw});}
-if(a==='attendees')return Response.json({rows:checked(await db.from('registrations').select('*,profiles!registrations_user_id_fkey(full_name,phone,student_code)').eq('event_id',b.event_id)),attendance:checked(await db.from('attendance').select('user_id,checked_at').eq('event_id',b.event_id))});
-if(a==='manual')return Response.json(checked(await db.rpc('check_in',{p_event:b.event_id,p_user:b.user_id,p_actor:user.id,p_qr:null})));
+if(a==='event-stats')return Response.json({rows:checked(await db.rpc('leader_event_stats',{p_actor:user.id}))});
+if(a==='attendees')return Response.json(checked(await db.rpc('leader_event_roster',{p_actor:user.id,p_event:b.event_id})));
+if(a==='manual-code')return Response.json(checked(await db.rpc('record_attendance_by_code',{p_event:b.event_id,p_code:normalizeStudentCode(b.student_code),p_actor:user.id})));
+if(a==='manual'){const target=checked(await db.from('profiles').select('student_code').eq('id',b.user_id).single());return Response.json(checked(await db.rpc('record_attendance_by_code',{p_event:b.event_id,p_code:target.student_code,p_actor:user.id})));}
 if(a==='home'){checked(await db.from('app_settings').upsert({key:'home',value:JSON.stringify(b.home)}));return Response.json({saved:true});}
 if(a==='news'){checked(await db.from('news').insert({title:b.title,body:b.body}));return Response.json({saved:true});}
 throw new Error('Unknown action');
