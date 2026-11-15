@@ -8,9 +8,9 @@ const future={...event,id:'22222222-2222-4222-8222-222222222222',title:'فعال
 const user={profile:{id:'fixture-leader',full_name:'قائد اختبار',student_code:'0000000',phone:'00000000000',role:'leader'},registrations:[],points:[]};
 const row=(code,pending)=>({user_id:pending?null:'user-'+code,profiles:{full_name:pending?'':'طالب لديه حساب',phone:pending?'':'00000000000',student_code:code},going:true,present:true,has_rsvp:false,registered_before:false,pending_account:pending,points:20,excuse:'',accommodation:''});
 let rows=[],failStats=false,addedCalls=0,actorRole='leader';
-await p.route('**/api/action',async route=>{
+await p.route('**/api/action*',async route=>{
  const req=route.request();if(req.method()==='GET')return route.fulfill({json:{events:[event,future],home:{},news:[]}});
- const b=req.postDataJSON();if(b.action==='me')return route.fulfill({json:{...user,profile:{...user.profile,role:actorRole}}});
+ const b=req.postDataJSON();if(b.action==='events')return route.fulfill({json:{events:[event,future]}});if(b.action==='event')return route.fulfill({json:{event:b.event_id===event.id?event:future}});if(b.action==='me')return route.fulfill({json:{...user,profile:{...user.profile,role:actorRole}}});
  if(b.action==='event-stats'){if(failStats)return route.fulfill({status:503,json:{error:'temporary'}});return route.fulfill({json:{rows:[{event_id:event.id,rsvp_count:3,attended_count:2+rows.length,pending_count:rows.filter(r=>r.pending_account).length},{event_id:future.id,rsvp_count:5,attended_count:0,pending_count:0}]}})}
  if(b.action==='attendees')return route.fulfill({json:{rows,attendance:rows.filter(r=>r.user_id).map(r=>({user_id:r.user_id}))}});
  if(b.action==='manual-code'){addedCalls++;assert.deepEqual(Object.keys(b).sort(),['action','event_id','student_code']);assert(/^[0-9]{7}$/.test(b.student_code));const existed=rows.some(r=>r.profiles.student_code===b.student_code);const pending=b.student_code!=='2527002';if(!existed)rows.push(row(b.student_code,pending));return route.fulfill({json:{saved:true,pendingAccount:pending,alreadyRecorded:existed,points:20,creditedPoints:pending||existed?0:20}})}

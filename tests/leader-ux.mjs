@@ -9,9 +9,11 @@ const second={...event,id:'leader-ui-second',title:'ورشة التنظيم',dre
 const user={profile:{id:'leader-fixture',full_name:'قائد للمعاينة',student_code:'0000000',phone:'00000000000',role:'leader'},points:[],registrations:[]};
 let calls=0,failManual=true,failNews=true,created=null;
 const row=(id,name,code,going=true)=>({user_id:id,going,excuse:id==='two'?'تعارض سكشن الكيمياء':'',accommodation:'',profiles:{full_name:name,student_code:code,phone:'01012345678'}});
-await p.route('**/api/action',async route=>{
+await p.route('**/api/action*',async route=>{
  const req=route.request();if(req.method()==='GET')return route.fulfill({json:{events:[event,second],home:{},news:[]}});
  const b=req.postDataJSON();
+ if(b.action==='events')return route.fulfill({json:{events:[event,second]}});
+ if(b.action==='event')return route.fulfill({json:{event:b.event_id===event.id?event:second}});
  if(b.action==='me')return route.fulfill({json:user});
  if(b.action==='attendees')return route.fulfill({json:{rows:b.event_id===event.id?[row('one','أحمد محمود','2527001'),row('two','مريم أحمد','2527002'),row('three','طالب ألغى','2527003',false)]:[],attendance:[{user_id:'two'}]}});
  if(b.action==='manual'){calls++;if(failManual){failManual=false;return route.fulfill({status:503,json:{error:'تعذّر الاتصال، حاول مجددًا'}})}return route.fulfill({json:{saved:true}})}
@@ -56,7 +58,7 @@ await p.getByRole('button',{name:'إدارة الحضور',exact:true}).first().
 await p.getByRole('button',{name:'تغيير المظهر',exact:true}).click();assert.equal(await p.getByRole('button',{name:'EN',exact:true}).count(),0);assert.equal(await p.locator('html').getAttribute('lang'),'ar');assert.equal(await p.locator('html').getAttribute('dir'),'rtl');assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await p.screenshot({path:'/workspace/work/leader-roster-dark-ar.png',fullPage:true});
 const studentContext=await browser.newContext({ignoreHTTPSErrors:true});
 const studentPage=await studentContext.newPage();
-await studentPage.route('**/api/action', route=>route.fulfill({json:route.request().method()==='GET'?{events:[event,second],home:{},news:[]}:{...user,profile:{...user.profile,role:'student'}}}));
+await studentPage.route('**/api/action*', route=>route.fulfill({json:route.request().method()==='GET'?{events:[event,second],home:{},news:[]}:route.request().postDataJSON().action==='events'?{events:[event,second]}:{...user,profile:{...user.profile,role:'student'}}}));
 await studentPage.goto(base+'/?view=leader');
 await studentPage.getByRole('heading',{name:'هذه الصفحة للقادة',exact:true}).waitFor();
 assert.equal(await studentPage.locator('.leader-workspace,.leader-roster').count(),0);

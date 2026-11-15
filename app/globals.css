@@ -1349,3 +1349,44 @@ textarea {
   line-height: 1.6;
   margin-top: 7px;
 }
+.event-draft-art {
+  width: 150px;
+  height: 150px;
+  margin: 12px 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.event-enroll {
+  padding-block: 75px;
+}
+.event-enroll h1 {
+  font-size: 32px;
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+.event-enroll p {
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.9;
+  max-width: 620px;
+}
+.event-enroll > div {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 26px;
+}
+.event-enroll button {
+  min-height: 44px;
+}
+@media (max-width: 700px) {
+  .event-enroll h1 {
+    font-size: 27px;
+  }
+  .event-enroll p {
+    font-size: 16px;
+  }
+  .event-enroll > div > button {
+    width: 100%;
+  }
+}

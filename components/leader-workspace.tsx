@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import type { LeaderApi, LeaderEvent } from "./leader-attendance";
 import "./leader.css";
+import { EventArtwork } from "./event-artwork";
+import { ImageUpload, ImagePreview } from "./image-upload";
 type Home = {
   video_url?: string;
   poster_url?: string;
@@ -36,6 +38,7 @@ export function LeaderWorkspace({
   onRefresh: () => Promise<void>;
 }) {
   const t = (a: string, b: string) => (en ? b : a);
+  const [mediaUploading, setMediaUploading] = useState(false);
   const [tab, setTab] = useState("events"),
     [past, setPast] = useState(false),
     [query, setQuery] = useState(""),
@@ -131,7 +134,7 @@ export function LeaderWorkspace({
     } catch {
       setCopyError(
         t(
-          "تعذّر النسخ. افتح الفعالية وانسخ الرابط من المتصفح.",
+          "الرابط ماتنسخش. افتح الفعالية وانسخه من شريط العنوان.",
           "Unable to copy. Open the event and copy its URL from the browser.",
         ),
       );
@@ -148,14 +151,14 @@ export function LeaderWorkspace({
         setBody("");
       }
 
-      setNotice(t("تم الحفظ", "Saved"));
+      setNotice(t("اتحفظت", "Saved"));
       try {
         await onRefresh();
         if (action === "home") setDirty(false);
       } catch {
         setNotice(
           t(
-            "تم الحفظ. حدّث الصفحة لعرض آخر نسخة.",
+            "اتحفظت. حدّث الصفحة لعرض آخر نسخة.",
             "Saved. Reload the page to see the latest version.",
           ),
         );
@@ -288,18 +291,22 @@ export function LeaderWorkspace({
           {list.length ? (
             list.map((e) => (
               <article className="leader-event-row" key={e.id}>
-                <div className="leader-date">
-                  <CalendarDays size={20} />
-                  <time dateTime={e.start_at}>
-                    {new Date(e.start_at).toLocaleDateString(
-                      en ? "en-GB" : "ar-EG",
-                      {
-                        day: "numeric",
-                        month: "short",
-                        timeZone: "Africa/Cairo",
-                      },
-                    )}
-                  </time>
+                <div className="leader-event-visual">
+                  <div className="leader-event-art">
+                    <EventArtwork title={e.title} src={e.cover_url} />
+                  </div>
+                  <div className="leader-date">
+                    <time dateTime={e.start_at}>
+                      {new Date(e.start_at).toLocaleDateString(
+                        en ? "en-GB" : "ar-EG",
+                        {
+                          day: "numeric",
+                          month: "short",
+                          timeZone: "Africa/Cairo",
+                        },
+                      )}
+                    </time>
+                  </div>
                 </div>
                 <div className="leader-event-info">
                   <button onClick={() => onManage(e)}>
@@ -370,10 +377,10 @@ export function LeaderWorkspace({
             <div className="leader-empty">
               <h2>
                 {query
-                  ? t("لا توجد نتائج مطابقة", "No matching events")
+                  ? t("مفيش نتائج مطابقة", "No matching events")
                   : past
-                    ? t("لا توجد فعاليات سابقة", "No past events")
-                    : t("لا توجد فعاليات قادمة", "No upcoming events")}
+                    ? t("لسه مفيش فعاليات سابقة", "No past events")
+                    : t("لسه مفيش فعاليات جاية", "No upcoming events")}
               </h2>
               {query ? (
                 <button className="outline" onClick={() => setQuery("")}>
@@ -444,6 +451,7 @@ export function LeaderWorkspace({
           className="leader-editor"
           onSubmit={(e) => {
             e.preventDefault();
+            if (mediaUploading) return;
             const urls = media.gallery_urls
               .split("\n")
               .map((s) => s.trim())
@@ -494,47 +502,136 @@ export function LeaderWorkspace({
               value={media.video_url}
               onChange={(e) => {
                 setDirty(true);
-                setMedia({ ...media, video_url: e.target.value });
+                setMedia((current) => ({
+                  ...current,
+                  video_url: e.target.value,
+                }));
               }}
             />
           </label>
-          <label>
-            {t("رابط الصورة البديلة", "Fallback image URL")}
-            <input
-              name="poster_url"
-              type="url"
-              pattern="https://.*"
-              dir="ltr"
-              value={media.poster_url}
-              onChange={(e) => {
+          <div className="image-picker">
+            <label>الصورة البديلة للفيديو</label>
+            <ImageUpload
+              api={api}
+              purpose="home"
+              disabled={mediaUploading || !!pending}
+              onBusyChange={setMediaUploading}
+              onUploaded={(url) => {
                 setDirty(true);
-                setMedia({ ...media, poster_url: e.target.value });
+                setMedia((current) => ({ ...current, poster_url: url }));
               }}
             />
-          </label>
-          <label>
-            {t(
-              "صور المعرض - رابط في كل سطر",
-              "Gallery images - one URL per line",
+            {media.poster_url && (
+              <>
+                <ImagePreview url={media.poster_url} api={api} />
+                <button
+                  type="button"
+                  className="text-btn"
+                  disabled={mediaUploading}
+                  onClick={() => {
+                    setDirty(true);
+                    setMedia((current) => ({ ...current, poster_url: "" }));
+                  }}
+                >
+                  شيل الصورة
+                </button>
+              </>
             )}
-            <textarea
-              name="gallery_urls"
-              dir="ltr"
-              rows={6}
-              value={media.gallery_urls}
-              onChange={(e) => {
+            <details>
+              <summary>أو استخدم رابط صورة</summary>
+              <input
+                type="url"
+                name="poster_url"
+                dir="ltr"
+                pattern="https://.*"
+                value={media.poster_url}
+                onChange={(e) => {
+                  setDirty(true);
+                  setMedia((current) => ({
+                    ...current,
+                    poster_url: e.target.value,
+                  }));
+                }}
+              />
+            </details>
+          </div>
+          <div className="image-picker">
+            <label>صور المعرض</label>
+            <ImageUpload
+              api={api}
+              purpose="home"
+              label="ارفع صور"
+              multiple
+              disabled={mediaUploading || !!pending}
+              maxFiles={Math.max(
+                0,
+                12 -
+                  media.gallery_urls.split("\n").filter((s) => s.trim()).length,
+              )}
+              onBusyChange={setMediaUploading}
+              onUploaded={(url) => {
                 setDirty(true);
-                setMedia({ ...media, gallery_urls: e.target.value });
+                setMedia((current) => ({
+                  ...current,
+                  gallery_urls: [current.gallery_urls.trim(), url]
+                    .filter(Boolean)
+                    .join("\n"),
+                }));
               }}
             />
-            <small>
-              {t(
-                "حتى 12 صورة. تظهر الصورة البديلة عند تعذّر تشغيل الفيديو.",
-                "Up to 12 images. The fallback image appears when the video cannot play.",
-              )}
-            </small>
-          </label>
-          <button className="primary" disabled={!!pending}>
+            <div className="gallery-preview">
+              {media.gallery_urls
+                .split("\n")
+                .map((s) => s.trim())
+                .filter(Boolean)
+                .map((url, i) => (
+                  <div key={url + i}>
+                    <img
+                      src={url}
+                      alt={"صورة المعرض " + (i + 1)}
+                      loading="lazy"
+                    />
+                    <button
+                      type="button"
+                      disabled={mediaUploading}
+                      onClick={() => {
+                        setDirty(true);
+                        setMedia((current) => ({
+                          ...current,
+                          gallery_urls: current.gallery_urls
+                            .split("\n")
+                            .map((s) => s.trim())
+                            .filter(Boolean)
+                            .filter((_, index) => index !== i)
+                            .join("\n"),
+                        }));
+                      }}
+                    >
+                      شيل الصورة
+                    </button>
+                  </div>
+                ))}
+            </div>
+            <small className="leader-help">تقدر تضيف لحد 12 صورة.</small>
+            <details>
+              <summary>أو أضف روابط صور</summary>
+              <textarea
+                name="gallery_urls"
+                dir="ltr"
+                rows={4}
+                value={media.gallery_urls}
+                onChange={(e) => {
+                  setDirty(true);
+                  setMedia((current) => ({
+                    ...current,
+                    gallery_urls: e.target.value,
+                  }));
+                }}
+              />
+              <small>رابط في كل سطر.</small>
+            </details>
+          </div>
+          <button className="primary" disabled={!!pending || mediaUploading}>
             {pending === "home" && <LoaderCircle size={16} className="spin" />}
             {t("حفظ الوسائط", "Save media")}
           </button>

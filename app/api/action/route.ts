@@ -40,9 +40,31 @@ export async function POST(req: NextRequest) {
       "event-stats",
       "news",
       "home",
+      "events",
+      "event",
+      "image-upload",
+      "image-read",
     ];
     if (!allowed.includes(b.action))
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    if (b.action === "image-upload")
+      z.object({
+        action: z.literal("image-upload"),
+        purpose: z.enum(["event", "home"]),
+      })
+        .strict()
+        .parse(b);
+    if (b.action === "image-read")
+      z.object({
+        action: z.literal("image-read"),
+        url: z.url().startsWith("https://"),
+      })
+        .strict()
+        .parse(b);
+    if (b.action === "event")
+      z.object({ action: z.literal("event"), event_id: z.uuid() })
+        .strict()
+        .parse(b);
     if (b.action === "manual-code") {
       const entry = z
         .object({

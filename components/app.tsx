@@ -18,6 +18,9 @@ import {
   Users,
   Shirt,
 } from "lucide-react";
+import { uiError } from "@/lib/ui-error";
+import { ImageUpload, ImagePreview } from "./image-upload";
+import { EventArtwork } from "./event-artwork";
 import { PasswordField } from "./password-field";
 import { CommunityExperience } from "./design-preview";
 import { LeaderWorkspace } from "./leader-workspace";
@@ -54,6 +57,14 @@ type Me = {
   registrations: Registration[];
   points: { points: number; event_id: string }[];
 };
+class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message);
+  }
+}
 async function api(
   action: string,
   data: Record<string, unknown> = {},
@@ -65,7 +76,7 @@ async function api(
     body: JSON.stringify({ action, ...data }),
   });
   const v = await r.json();
-  if (!r.ok) throw new Error(v.error || "Something went wrong");
+  if (!r.ok) throw new ApiError(uiError(v.error), r.status);
   return v;
 }
 const date = (s: string, en: boolean) =>
@@ -98,6 +109,7 @@ export default function App() {
     [menu, setMenu] = useState(false),
     [rows, setRows] = useState<{ full_name: string; points: number }[]>([]),
     [creating, setCreating] = useState(false),
+    [uploadBusy, setUploadBusy] = useState(false),
     [qr, setQr] = useState(""),
     [qrImage, setQrImage] = useState(""),
     [manageRoster, setManageRoster] = useState(false),
@@ -107,24 +119,49 @@ export default function App() {
     [past, setPast] = useState(false);
   const t = (ar: string, eng: string) => (en ? eng : ar);
   const initialized = useRef(false);
-  const refresh = async () => {
-    const r = await fetch("/api/action");
+  const dataRequest = useRef(0);
+  const uploadBusyRef = useRef(false);
+  uploadBusyRef.current = uploadBusy;
+  const refresh = async (fresh = false) => {
+    const request = ++dataRequest.current;
+    const [r, memberEvents] = await Promise.all([
+      fetch("/api/action" + (fresh ? "?fresh=" + Date.now() : "")),
+      api("events").catch((e) => {
+        if (e instanceof ApiError && e.status === 401) return null;
+        throw e;
+      }),
+    ]);
     const d = await r.json();
     if (!r.ok) throw new Error(d.error);
-    setEvents(d.events);
-    setNews(d.news);
+    const nextEvents: EventItem[] =
+      memberEvents?.events ||
+      (d.events || []).filter(
+        (e: EventItem) => new Date(e.end_at) <= new Date(),
+      );
+    if (request !== dataRequest.current) return nextEvents;
+    setEvents(nextEvents);
+    setNews(d.news || []);
     setHome(d.home || {});
     setLoadFailed(false);
     if (!initialized.current) {
       initialized.current = true;
       const params = new URLSearchParams(location.search);
-      const event = d.events.find(
-        (e: EventItem) => e.id === params.get("event"),
-      );
-      if (event) {
-        setManageRoster(params.get("manage") === "1");
-        setSelected(event);
-        setView("event");
+      const id = params.get("event");
+      if (id) {
+        const event = nextEvents.find((e) => e.id === id);
+        if (event) {
+          setManageRoster(params.get("manage") === "1");
+          setSelected(event);
+          setView("event");
+        } else if (memberEvents) {
+          try {
+            const result = await api("event", { event_id: id });
+            setSelected(result.event);
+            setView("event");
+          } catch {
+            setView("event-missing");
+          }
+        } else setView("event-gate");
       } else if (
         ["events", "leaderboard", "account", "scan", "leader"].includes(
           params.get("view") || "",
@@ -132,6 +169,7 @@ export default function App() {
       )
         setView(params.get("view")!);
     }
+    return nextEvents;
   };
   const refreshMe = async () => {
     try {
@@ -178,7 +216,7 @@ export default function App() {
     try {
       await fn();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Request failed");
+      setError(uiError(e instanceof Error ? e.message : null));
     } finally {
       setBusy(false);
     }
@@ -189,7 +227,9 @@ export default function App() {
       const e = events.find((x) => x.id === q.get("event"));
       setManageRoster(q.get("manage") === "1");
       setSelected(e || null);
-      setView(e ? "event" : q.get("view") || "home");
+      setView(
+        e ? "event" : q.get("event") ? "event-gate" : q.get("view") || "home",
+      );
     };
     window.addEventListener("popstate", pop);
     return () => window.removeEventListener("popstate", pop);
@@ -202,6 +242,7 @@ export default function App() {
     first?.focus();
     const key = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !recovery) {
+        if (creating && uploadBusyRef.current) return;
         setAuth(null);
         setCreating(false);
         setQr("");
@@ -254,8 +295,30 @@ export default function App() {
       const d = await api(auth!, f, true);
       await refreshMe();
       if (d.recovery) setRecovery(d.recovery);
+      const returnEvent = new URLSearchParams(location.search).get("event");
       setAuth(null);
-      go("events");
+      let updatedEvents: EventItem[] = [];
+      try {
+        updatedEvents = await refresh(true);
+      } catch {
+        setLoadFailed(true);
+      }
+      if (returnEvent) {
+        const found = updatedEvents.find((e) => e.id === returnEvent);
+        if (found) openEvent(found);
+        else {
+          try {
+            const result = await api("event", { event_id: returnEvent });
+            openEvent(result.event);
+          } catch (e) {
+            setView(
+              e instanceof ApiError && e.status === 404
+                ? "event-missing"
+                : "event-gate",
+            );
+          }
+        }
+      } else go("events");
       setNotice(t("أهلًا بك في من أجل مصر", "Welcome to Mn Agl Masr"));
     });
   }
@@ -267,7 +330,7 @@ export default function App() {
     } catch {
       setQrError(
         t(
-          "تم إنشاء الفعالية. أعد محاولة عرض الرمز.",
+          "الفعالية اتعملت. أعد محاولة عرض الرمز.",
           "Event created. Retry generating its QR image.",
         ),
       );
@@ -386,7 +449,7 @@ export default function App() {
                     setAuth("signup");
                   }}
                 >
-                  {t("انضم إلينا", "Join us")}
+                  {t("سجّل معانا", "Join us")}
                 </button>
               </>
             )}
@@ -438,7 +501,7 @@ export default function App() {
             content={{ home, events, news }}
             loading={!initialized.current && !loadFailed}
             loadError={loadFailed}
-            onRetry={() => refresh().catch(() => setLoadFailed(true))}
+            onRetry={() => refresh(true).catch(() => setLoadFailed(true))}
             onNavigate={go}
             onEvent={openEvent}
             onJoin={() => (me ? go("events") : setAuth("signup"))}
@@ -457,7 +520,9 @@ export default function App() {
               }}
               onManage={(event) => openEvent(event, true)}
               api={api}
-              onRefresh={refresh}
+              onRefresh={async () => {
+                await refresh(true);
+              }}
             />
           ) : (
             <section className="app-container narrow">
@@ -470,7 +535,76 @@ export default function App() {
               />
             </section>
           ))}
-        {view === "events" && (
+        {(view === "event-gate" ||
+          (view === "events" && authChecked && !me) ||
+          (view === "event" &&
+            selected &&
+            !me &&
+            authChecked &&
+            new Date(selected.end_at) > new Date())) && (
+          <section className="app-container narrow event-enroll">
+            <h1>
+              {me
+                ? "مش قادرين نعرض الفعالية دلوقتي"
+                : "سجّل معانا عشان تأكد مشاركتك"}
+            </h1>
+            {me ? (
+              <>
+                <p>جرّب تفتح الفعالية تاني.</p>
+                <button
+                  className="primary"
+                  onClick={() =>
+                    run(async () => {
+                      const id = new URLSearchParams(location.search).get(
+                        "event",
+                      );
+                      if (!id) {
+                        go("events");
+                        return;
+                      }
+                      try {
+                        const result = await api("event", { event_id: id });
+                        openEvent(result.event);
+                      } catch (e) {
+                        if (e instanceof ApiError && e.status === 404)
+                          setView("event-missing");
+                        else throw e;
+                      }
+                    })
+                  }
+                >
+                  افتح الفعالية
+                </button>
+              </>
+            ) : (
+              <>
+                <p>
+                  الفعاليات الجاية متاحة لأعضاء الأسرة. اعمل حسابك، ولو عندك
+                  حساب سجّل دخولك.
+                </p>
+                <div>
+                  <button className="primary" onClick={() => setAuth("signup")}>
+                    اعمل حسابك
+                  </button>
+                  <button className="outline" onClick={() => setAuth("login")}>
+                    عندي حساب، سجّل دخولي
+                  </button>
+                </div>
+              </>
+            )}
+          </section>
+        )}
+        {view === "event-missing" && (
+          <section className="app-container narrow">
+            <Empty
+              title="الفعالية مش موجودة"
+              text="راجع الرابط أو شوف الفعاليات الموجودة."
+              action={() => go("events")}
+              label="شوف الفعاليات"
+            />
+          </section>
+        )}
+        {view === "events" && me && (
           <section className="app-container">
             <div className="page-heading">
               <h1>{t("الفعاليات", "Events")}</h1>
@@ -535,270 +669,255 @@ export default function App() {
               </div>
             ) : (
               <Empty
-                title={t("لا توجد فعاليات حتى الآن", "No events here yet")}
+                title={t("لسه مفيش فعاليات", "No events here yet")}
                 text={t(
-                  "ستجد الفعاليات الجديدة هنا بعد الإعلان عنها.",
+                  "أول ما ننزل فعالية، هتلاقيها هنا.",
                   "New events will appear here when announced.",
                 )}
               />
             )}
           </section>
         )}
-        {view === "event" && selected && (
-          <section
-            className={
-              "event-detail app-container " +
-              (me?.profile.role === "leader" ? "leader-event-detail" : "")
-            }
-          >
-            <aside>
-              <div className="event-cover">
-                {selected.cover_url ? (
-                  <img src={selected.cover_url} alt="" />
-                ) : (
-                  <div className="cover-letter" aria-hidden="true">
-                    <img
-                      className="cover-badge"
-                      src="/assets/cairo-student-logo.jpg"
-                      alt=""
-                      width={52}
-                      height={52}
-                    />
-                    <h2>{selected.title}</h2>
-                    <span>
-                      {t("طلاب من أجل مصر", "Mn Agl Masr")}
-                      <br />
-                      {t(
-                        "كلية العلوم، جامعة القاهرة",
-                        "Faculty of Science, Cairo University",
-                      )}
-                    </span>
-                  </div>
-                )}
-              </div>
-              <p className="muted">{t("تنظيم", "Presented by")}</p>
-              <h3>
-                {t(
-                  "طلاب من أجل مصر, كلية العلوم، جامعة القاهرة",
-                  "Mn Agl Masr, Faculty of Science, Cairo University",
-                )}
-              </h3>
-            </aside>
-            <div>
-              <button className="text-btn back" onClick={() => go("events")}>
-                {t("الفعاليات", "Events")}
-                <ChevronLeft size={15} />
-              </button>
-              <h1>{selected.title}</h1>
-              <div className="event-meta">
-                <CalendarDays />
-                <div>
-                  {date(selected.start_at, en)}
-                  <small>
-                    {new Date(selected.start_at).toLocaleTimeString(
-                      en ? "en-GB" : "ar-EG",
-                      {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        timeZone: "Africa/Cairo",
-                      },
-                    )}
-                  </small>
-                </div>
-              </div>
-              <div className="event-meta">
-                <MapPin />
-                <div>{selected.location}</div>
-              </div>
-              {selected.dress_code && (
-                <div className="event-meta">
-                  <Shirt />
-                  <div>
-                    <small>{t("الزي المطلوب", "Dress code")}</small>
-                    {selected.dress_code}
-                  </div>
-                </div>
-              )}
-              <div className="event-meta">
-                <Trophy />
-                <span className="status-label status-points">
-                  {selected.points}{" "}
-                  {t("نقطة عند الحضور", "points for attending")}
-                </span>
-              </div>
-              {me?.profile.role === "leader" && (
-                <>
-                  <button
-                    className="text-btn leader-back"
-                    onClick={() => go("leader")}
-                  >
-                    <ChevronLeft size={17} />
-                    {t("العودة للإدارة", "Back to management")}
-                  </button>
-                  <LeaderAttendance
-                    key={selected.id}
-                    event={selected}
-                    en={en}
-                    api={api}
-                    initialOpen={manageRoster}
+        {view === "event" &&
+          selected &&
+          (me || new Date(selected.end_at) <= new Date()) && (
+            <section
+              className={
+                "event-detail app-container " +
+                (me?.profile.role === "leader" ? "leader-event-detail" : "")
+              }
+            >
+              <aside>
+                <div className="event-cover">
+                  <EventArtwork
+                    title={selected.title}
+                    src={selected.cover_url}
+                    large
                   />
-                </>
-              )}
-              <RegistrationContainer className="leader-personal">
-                {me?.profile.role === "leader" && (
-                  <summary>
-                    {t("مشاركتي في الفعالية", "My own registration")}
-                  </summary>
+                </div>
+                <p className="muted">{t("تنظيم", "Presented by")}</p>
+                <h3>
+                  {t(
+                    "طلاب من أجل مصر, كلية العلوم، جامعة القاهرة",
+                    "Mn Agl Masr, Faculty of Science, Cairo University",
+                  )}
+                </h3>
+              </aside>
+              <div>
+                <button className="text-btn back" onClick={() => go("events")}>
+                  {t("الفعاليات", "Events")}
+                  <ChevronLeft size={15} />
+                </button>
+                <h1>{selected.title}</h1>
+                <div className="event-meta">
+                  <CalendarDays />
+                  <div>
+                    {date(selected.start_at, en)}
+                    <small>
+                      {new Date(selected.start_at).toLocaleTimeString(
+                        en ? "en-GB" : "ar-EG",
+                        {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          timeZone: "Africa/Cairo",
+                        },
+                      )}
+                    </small>
+                  </div>
+                </div>
+                <div className="event-meta">
+                  <MapPin />
+                  <div>{selected.location}</div>
+                </div>
+                {selected.dress_code && (
+                  <div className="event-meta">
+                    <Shirt />
+                    <div>
+                      <small>{t("الزي المطلوب", "Dress code")}</small>
+                      {selected.dress_code}
+                    </div>
+                  </div>
                 )}
-                <div className="registration-card">
-                  <h3>
+                <div className="event-meta">
+                  <Trophy />
+                  <span className="status-label status-points">
+                    {selected.points}{" "}
+                    {t("نقطة عند الحضور", "points for attending")}
+                  </span>
+                </div>
+                {me?.profile.role === "leader" && (
+                  <>
+                    <button
+                      className="text-btn leader-back"
+                      onClick={() => go("leader")}
+                    >
+                      <ChevronLeft size={17} />
+                      {t("العودة للإدارة", "Back to management")}
+                    </button>
+                    <LeaderAttendance
+                      key={selected.id}
+                      event={selected}
+                      en={en}
+                      api={api}
+                      initialOpen={manageRoster}
+                    />
+                  </>
+                )}
+                <RegistrationContainer className="leader-personal">
+                  {me?.profile.role === "leader" && (
+                    <summary>
+                      {t("مشاركتي في الفعالية", "My own registration")}
+                    </summary>
+                  )}
+                  <div className="registration-card">
+                    <h3>
+                      {me?.registrations.some(
+                        (r) => r.event_id === selected.id && r.going,
+                      )
+                        ? t("أنت مشارك", "You’re going")
+                        : t("شارك في الفعالية", "Join this event")}
+                    </h3>
                     {me?.registrations.some(
                       (r) => r.event_id === selected.id && r.going,
-                    )
-                      ? t("أنت مشارك", "You’re going")
-                      : t("شارك في الفعالية", "Join this event")}
-                  </h3>
-                  {me?.registrations.some(
-                    (r) => r.event_id === selected.id && r.going,
-                  ) && (
-                    <span className="status-label status-confirmed registration-status">
-                      <Check size={14} />
-                      {t("مشاركة مؤكدة", "Registration confirmed")}
-                    </span>
-                  )}
-                  {me ? (
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        const data = Object.fromEntries(
-                          new FormData(e.currentTarget),
-                        );
-                        run(async () => {
-                          await api("rsvp", { ...data, event_id: selected.id });
-                          await refreshMe();
-                          setNotice(
-                            t(
-                              "تم التسجيل وحفظ طلباتك. مقبولة تلقائيًا.",
-                              "Registration saved. Your requests are automatically accepted.",
-                            ),
-                          );
-                        });
-                      }}
-                    >
-                      <label>
-                        {t(
-                          "تسهيلات تحتاجها لهذه الفعالية (اختياري)",
-                          "Accommodations for this event (optional)",
-                        )}
-                        <textarea
-                          name="accommodation"
-                          maxLength={2000}
-                          defaultValue={
-                            me.registrations.find(
-                              (r) => r.event_id === selected.id,
-                            )?.accommodation
-                          }
-                          placeholder={t(
-                            "أخبرنا بما يساعدك على المشاركة",
-                            "Tell us what would help you take part",
-                          )}
-                        />
-                      </label>
-                      <label>
-                        {t(
-                          "عذر رسمي لمحاضرة أو سكشن متعارض (اختياري)",
-                          "Academic excuse for a conflicting class (optional)",
-                        )}
-                        <textarea
-                          name="excuse"
-                          maxLength={2000}
-                          defaultValue={
-                            me.registrations.find(
-                              (r) => r.event_id === selected.id,
-                            )?.excuse
-                          }
-                          placeholder={t(
-                            "اسم المقرر، المحاضرة أو السكشن، الموعد",
-                            "Course, lecture or section, and time",
-                          )}
-                        />
-                      </label>
-                      <span className="status-label status-confirmed request-status">
+                    ) && (
+                      <span className="status-label status-confirmed registration-status">
                         <Check size={14} />
-                        {t(
-                          "الطلبات مقبولة تلقائيًا",
-                          "Requests automatically accepted",
-                        )}
+                        {t("مشاركة مؤكدة", "Registration confirmed")}
                       </span>
-                      <p className="small muted">
-                        {t(
-                          "طلباتك تخص هذه الفعالية فقط، وتُقبل تلقائيًا.",
-                          "These requests belong only to this event and are automatically accepted.",
-                        )}
-                      </p>
-                      <button className="primary full" disabled={busy}>
-                        {busy ? (
-                          <LoaderCircle className="spin" size={17} />
-                        ) : (
-                          <Check size={17} />
-                        )}{" "}
-                        {t(
-                          "تأكيد المشاركة وحفظ الطلبات",
-                          "Confirm attendance & save requests",
-                        )}
-                      </button>
-                      {me.registrations.some(
-                        (r) => r.event_id === selected.id && r.going,
-                      ) && (
-                        <button
-                          type="button"
-                          className="text-btn cancel"
-                          disabled={busy}
-                          onClick={() =>
-                            run(async () => {
-                              await api("rsvp", {
-                                event_id: selected.id,
-                                going: false,
-                              });
-                              await refreshMe();
-                              setNotice(
-                                t(
-                                  "تم إلغاء المشاركة",
-                                  "Registration cancelled",
-                                ),
-                              );
-                            })
-                          }
-                        >
-                          {t("إلغاء المشاركة", "Cancel registration")}
-                        </button>
-                      )}
-                    </form>
-                  ) : (
-                    <>
-                      <p>
-                        {t(
-                          "سجّل دخولك للمشاركة وحفظ طلباتك.",
-                          "Log in to register and save your requests.",
-                        )}
-                      </p>
-                      <button
-                        className="primary full"
-                        onClick={() => setAuth("login")}
+                    )}
+                    {me ? (
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const data = Object.fromEntries(
+                            new FormData(e.currentTarget),
+                          );
+                          run(async () => {
+                            await api("rsvp", {
+                              ...data,
+                              event_id: selected.id,
+                            });
+                            await refreshMe();
+                            setNotice(
+                              t(
+                                "تم التسجيل وحفظ طلباتك. مقبولة تلقائيًا.",
+                                "Registration saved. Your requests are automatically accepted.",
+                              ),
+                            );
+                          });
+                        }}
                       >
-                        {t("تسجيل الدخول", "Log in")}
-                      </button>
-                    </>
-                  )}
+                        <label>
+                          {t(
+                            "تسهيلات محتاجها في الفعالية دي (اختياري)",
+                            "Accommodations for this event (optional)",
+                          )}
+                          <textarea
+                            name="accommodation"
+                            maxLength={2000}
+                            defaultValue={
+                              me.registrations.find(
+                                (r) => r.event_id === selected.id,
+                              )?.accommodation
+                            }
+                            placeholder={t(
+                              "أخبرنا بما يساعدك على المشاركة",
+                              "Tell us what would help you take part",
+                            )}
+                          />
+                        </label>
+                        <label>
+                          {t(
+                            "عذر لمحاضرة أو سكشن في نفس المعاد (اختياري)",
+                            "Academic excuse for a conflicting class (optional)",
+                          )}
+                          <textarea
+                            name="excuse"
+                            maxLength={2000}
+                            defaultValue={
+                              me.registrations.find(
+                                (r) => r.event_id === selected.id,
+                              )?.excuse
+                            }
+                            placeholder={t(
+                              "اسم المقرر، المحاضرة أو السكشن، الموعد",
+                              "Course, lecture or section, and time",
+                            )}
+                          />
+                        </label>
+                        <span className="status-label status-confirmed request-status">
+                          <Check size={14} />
+                          {t(
+                            "الطلبات بتتقبل تلقائي",
+                            "Requests automatically accepted",
+                          )}
+                        </span>
+                        <p className="small muted">
+                          {t(
+                            "طلباتك للفعالية دي بس، وبتتقبل تلقائي.",
+                            "These requests belong only to this event and are automatically accepted.",
+                          )}
+                        </p>
+                        <button className="primary full" disabled={busy}>
+                          {busy ? (
+                            <LoaderCircle className="spin" size={17} />
+                          ) : (
+                            <Check size={17} />
+                          )}{" "}
+                          {t(
+                            "أكد مشاركتك واحفظ الطلبات",
+                            "Confirm attendance & save requests",
+                          )}
+                        </button>
+                        {me.registrations.some(
+                          (r) => r.event_id === selected.id && r.going,
+                        ) && (
+                          <button
+                            type="button"
+                            className="text-btn cancel"
+                            disabled={busy}
+                            onClick={() =>
+                              run(async () => {
+                                await api("rsvp", {
+                                  event_id: selected.id,
+                                  going: false,
+                                });
+                                await refreshMe();
+                                setNotice(
+                                  t("مشاركتك اتلغت", "Registration cancelled"),
+                                );
+                              })
+                            }
+                          >
+                            {t("إلغاء المشاركة", "Cancel registration")}
+                          </button>
+                        )}
+                      </form>
+                    ) : (
+                      <>
+                        <p>
+                          {t(
+                            "سجّل دخولك للمشاركة وحفظ طلباتك.",
+                            "Log in to register and save your requests.",
+                          )}
+                        </p>
+                        <button
+                          className="primary full"
+                          onClick={() => setAuth("login")}
+                        >
+                          {t("تسجيل الدخول", "Log in")}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </RegistrationContainer>
+                <div className="about-event">
+                  <h3>{t("عن الفعالية", "About the event")}</h3>
+                  <p>{selected.description}</p>
                 </div>
-              </RegistrationContainer>
-              <div className="about-event">
-                <h3>{t("عن الفعالية", "About the event")}</h3>
-                <p>{selected.description}</p>
               </div>
-            </div>
-          </section>
-        )}
+            </section>
+          )}
         {view === "leaderboard" && me && (
           <section className="app-container narrow">
             <div className="page-heading">
@@ -843,7 +962,9 @@ export default function App() {
                   run(async () => {
                     await api("logout", {}, true);
                     setMe(null);
+                    setEvents([]);
                     go("home");
+                    await refresh(true);
                   })
                 }
               >
@@ -879,7 +1000,7 @@ export default function App() {
                           }
                         : current,
                     );
-                    setNotice(t("تم حفظ بياناتك", "Contact details saved"));
+                    setNotice(t("بياناتك اتحفظت", "Contact details saved"));
                   });
                 }}
               >
@@ -933,7 +1054,7 @@ export default function App() {
               {!me.registrations.some((r) => r.going) && (
                 <p className="muted">
                   {t(
-                    "لم تسجل في فعاليات بعد.",
+                    "لسه ما سجّلتش في أي فعالية.",
                     "You haven’t registered for any events yet.",
                   )}
                 </p>
@@ -1047,7 +1168,7 @@ export default function App() {
             />
             <h2 id="auth-title">
               {auth === "signup"
-                ? t("بداية حكايتك", "Your story starts here")
+                ? t("اعمل حسابك", "Your story starts here")
                 : auth === "recover"
                   ? t("استعادة حسابك", "Recover your account")
                   : t("أهلًا برجوعك", "Welcome back")}
@@ -1110,7 +1231,7 @@ export default function App() {
                     />
                     <small>
                       {t(
-                        "14 رقمًا. لا يمكن عرضه أو تغييره بعد التسجيل.",
+                        "14 رقم. مش هتقدر تشوفه أو تغيّره بعد التسجيل.",
                         "14 digits. It cannot be viewed or changed after submission.",
                       )}
                     </small>
@@ -1170,7 +1291,7 @@ export default function App() {
               >
                 {auth === "signup"
                   ? t("سجل دخولك", "Log in")
-                  : t("انضم إلينا", "Join us")}
+                  : t("سجّل معانا", "Join us")}
               </button>
             </p>
           </section>
@@ -1228,6 +1349,7 @@ export default function App() {
             <button
               className="close icon-btn"
               aria-label="إغلاق"
+              disabled={uploadBusy || busy}
               onClick={() => {
                 setCreating(false);
                 setError("");
@@ -1238,18 +1360,23 @@ export default function App() {
             <h2>{t("فعالية جديدة", "New event")}</h2>
             <form
               onInput={(e) => {
+                const changed = e.target as HTMLInputElement;
+                if (!changed.name || changed.type === "file") return;
                 const f = Object.fromEntries(new FormData(e.currentTarget));
-                setEventDraft(
-                  Object.fromEntries(
+                delete f.cover_url;
+                setEventDraft((current) => ({
+                  ...current,
+                  ...Object.fromEntries(
                     Object.entries(f).map(([k, v]) => [k, String(v)]),
                   ),
-                );
+                }));
                 e.currentTarget
                   .querySelector<HTMLInputElement>('[name="end_at"]')
                   ?.setCustomValidity("");
               }}
               onSubmit={(e) => {
                 e.preventDefault();
+                if (uploadBusy) return;
                 const f = Object.fromEntries(new FormData(e.currentTarget));
                 let startAt: string, endAt: string;
                 try {
@@ -1291,11 +1418,11 @@ export default function App() {
                   setQr(d.code);
                   await generateQr(d.code);
                   try {
-                    await refresh();
+                    await refresh(true);
                   } catch {
                     setLoadFailed(true);
                   }
-                  setNotice(t("تم إنشاء الفعالية", "Event created"));
+                  setNotice(t("الفعالية اتعملت", "Event created"));
                 });
               }}
             >
@@ -1377,21 +1504,68 @@ export default function App() {
                   required
                 />
               </label>
-              <label>
-                {t("رابط صورة الغلاف (اختياري)", "Cover image URL (optional)")}
-                <input
-                  type="url"
-                  name="cover_url"
-                  defaultValue={eventDraft.cover_url}
-                  pattern="https://.*"
+              <div className="image-picker">
+                <label>صورة الفعالية (اختياري)</label>
+                <ImageUpload
+                  api={api}
+                  purpose="event"
+                  onBusyChange={setUploadBusy}
+                  onUploaded={(url) =>
+                    setEventDraft((current) => ({ ...current, cover_url: url }))
+                  }
                 />
-              </label>
+                <input
+                  type="hidden"
+                  name="cover_url"
+                  value={eventDraft.cover_url || ""}
+                />
+                {eventDraft.cover_url ? (
+                  <>
+                    <ImagePreview url={eventDraft.cover_url} api={api} />
+                    <button
+                      type="button"
+                      className="text-btn"
+                      disabled={uploadBusy}
+                      onClick={() =>
+                        setEventDraft((current) => ({
+                          ...current,
+                          cover_url: "",
+                        }))
+                      }
+                    >
+                      شيل الصورة
+                    </button>
+                  </>
+                ) : (
+                  <div className="event-draft-art">
+                    <EventArtwork
+                      title={eventDraft.title || "عنوان الفعالية"}
+                    />
+                  </div>
+                )}
+                <details>
+                  <summary>أو استخدم رابط صورة</summary>
+                  <input
+                    type="url"
+                    aria-label="رابط صورة الفعالية"
+                    disabled={uploadBusy}
+                    value={eventDraft.cover_url || ""}
+                    onChange={(e) =>
+                      setEventDraft((current) => ({
+                        ...current,
+                        cover_url: e.target.value,
+                      }))
+                    }
+                    pattern="https://.*"
+                  />
+                </details>
+              </div>
               {error && (
                 <p role="alert" className="form-error">
                   {error}
                 </p>
               )}
-              <button className="primary full" disabled={busy}>
+              <button className="primary full" disabled={busy || uploadBusy}>
                 {t("إنشاء وحفظ رمز الحضور", "Create & generate attendance QR")}
               </button>
             </form>
@@ -1515,15 +1689,7 @@ function EventCard({
         </div>
       </div>
       <div className="event-thumbnail">
-        {e.cover_url ? (
-          <img src={e.cover_url} alt="" />
-        ) : (
-          <img
-            className="event-logo"
-            src="/assets/cairo-student-logo.jpg"
-            alt=""
-          />
-        )}
+        <EventArtwork title={e.title} src={e.cover_url} />
       </div>
     </button>
   );

@@ -76,11 +76,13 @@ for (const role of ["student", "leader"]) {
     points: [{ event_id: event.id, points: 30 }],
   };
   // All fixture traffic is intercepted in the browser. No accounts, roles or records are written to Supabase.
-  await page.route("**/api/action", async (route) => {
+  await page.route("**/api/action*", async (route) => {
     const req = route.request();
     if (req.method() === "GET")
       return route.fulfill({ json: { events: [event], home: {}, news: [] } });
     const b = req.postDataJSON();
+    if (b.action === "events") return route.fulfill({json:{events:[event]}});
+    if (b.action === "event") return route.fulfill({json:{event}});
     if (b.action === "me") return route.fulfill({ json: user });
     if (b.action === "profile") {
       assert.deepEqual(Object.keys(b).sort(), ["action", "email", "phone"]);
@@ -126,7 +128,7 @@ for (const role of ["student", "leader"]) {
   });
   await page.goto(base);
   await page
-    .getByRole("heading", { name: "نتعلّم، نشارك، ونصنع أثرًا", exact: false })
+    .getByRole("heading", { name: "من أجل مصر", exact: false })
     .waitFor();
   assert.equal(await page.locator(".dp-drawn-arrow").count(), 0);
   assert.equal(await page.locator(".dp-preview-note").count(), 0);
@@ -204,7 +206,7 @@ for (const role of ["student", "leader"]) {
   await page.getByLabel('رقم الهاتف', {exact:true}).fill('01012345678');
   await page.getByLabel('البريد الإلكتروني', {exact:true}).fill('contact@example.org');
   await page.getByRole('button', {name:'حفظ التغييرات',exact:true}).click();
-  await page.getByText('تم حفظ بياناتك',{exact:true}).waitFor();
+  await page.getByText('بياناتك اتحفظت',{exact:true}).waitFor();
   await page.reload();
   await page.getByRole('heading',{name:'حسابي',exact:true}).waitFor();
   assert.equal(await page.getByLabel('رقم الهاتف',{exact:true}).inputValue(),'01012345678');
@@ -256,7 +258,7 @@ const context = await browser.newContext({
   viewport: { width: 390, height: 844 },
 });
 const page = await context.newPage();
-await page.route("**/api/action", (route) =>
+await page.route("**/api/action*", (route) =>
   route.fulfill(
     route.request().method() === "GET"
       ? { json: { events: [], news: [], home: {} } }
@@ -264,7 +266,7 @@ await page.route("**/api/action", (route) =>
   ),
 );
 await page.goto(base);
-await page.getByTestId("empty-events").waitFor();
+await page.getByTestId("empty-news").waitFor();
 assert.equal(
   await page.getByText("يوم العلوم المفتوح", { exact: true }).count(),
   0,

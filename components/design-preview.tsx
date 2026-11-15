@@ -14,6 +14,7 @@ import {
   Shirt,
 } from "lucide-react";
 import "./design-preview.css";
+import { EventArtwork } from "./event-artwork";
 import { HissImageStack, useHissReveals } from "./hiss-motion";
 type EventItem = {
   id: string;
@@ -71,7 +72,7 @@ type CommunityProps = {
   content?: {
     events: EventItem[];
     home: { video_url?: string; poster_url?: string; gallery_urls?: string[] };
-    news: { id: string; title: string; body: string }[];
+    news: { id: string; title: string; body: string; created_at?: string }[];
   };
   loading?: boolean;
   loadError?: boolean;
@@ -81,7 +82,7 @@ type CommunityProps = {
   onJoin?: () => void;
 };
 export default function DesignPreview() {
-  return <CommunityExperience />;
+  return <CommunityExperience live />;
 }
 export function CommunityExperience({
   embedded = false,
@@ -106,7 +107,7 @@ export function CommunityExperience({
       gallery_urls?: string[];
     }>({}),
     [fetchedNews, setNews] = useState<
-      { title: string; body: string; id: string }[]
+      { title: string; body: string; id: string; created_at?: string }[]
     >([]);
   const motionRoot = useRef<HTMLDivElement>(null);
   useHissReveals(motionRoot, tab);
@@ -188,6 +189,10 @@ export function CommunityExperience({
     });
   const Arrow = en ? ArrowUpRight : ArrowUpLeft;
   function navigate(next: string) {
+    if (!embedded && next === "feed") {
+      window.location.assign("/?view=events");
+      return;
+    }
     if (embedded && onNavigate) {
       onNavigate(next === "feed" ? "events" : "home");
       return;
@@ -246,16 +251,8 @@ export function CommunityExperience({
               +{e.points} {t("نقطة عند الحضور", "points for attending")}
             </span>
           </div>
-          <div className={"dp-poster poster-" + (i % 3)}>
-            {e.cover_url ? (
-              <img src={e.cover_url} alt="" />
-            ) : (
-              <>
-                <span>{t("من أجل مصر", "MN AGL MASR")}</span>
-                <b>{title(e)}</b>
-                <small>{day(e)}</small>
-              </>
-            )}
+          <div className="dp-poster">
+            <EventArtwork title={title(e)} src={e.cover_url} />
           </div>
         </button>
       </div>
@@ -286,7 +283,7 @@ export function CommunityExperience({
               className="dp-logo"
               src="/assets/cairo-student-logo.jpg"
               alt={t(
-                "شعار طلاب من أجل مصر، جامعة القاهرة",
+                "شعار طلاب طلاب من علوم، جامعة القاهرة",
                 "Students for Egypt, Cairo University logo",
               )}
               width={58}
@@ -325,7 +322,7 @@ export function CommunityExperience({
               {dark ? <Sun size={17} /> : <Moon size={17} />}
             </button>
             <a className="dp-join" href="/?join=1" onClick={join}>
-              {t("انضم إلينا", "Join us")}
+              {t("سجّل معانا", "Join us")}
               <Arrow size={15} />
             </a>
           </nav>
@@ -335,10 +332,10 @@ export function CommunityExperience({
         <ContentTag>
           <section className="dp-intro">
             <h1 data-hiss-reveal>
-              {t("نتعلّم، نشارك،", "Learn, take part,")}
+              {t("من أجل مصر", "Learn, take part,")}
               <br />
               <span className="dp-headline-accent">
-                {t("ونصنع أثرًا", "make an impact")}
+                {t("في علوم القاهرة", "make an impact")}
               </span>
             </h1>
             <div className="dp-collage">
@@ -380,115 +377,81 @@ export function CommunityExperience({
               </button>
             </div>
           </section>
+          <section className="dp-news" aria-labelledby="news-heading">
+            <div className="dp-section-heading" data-hiss-reveal>
+              <h2 id="news-heading">آخر أخبارنا</h2>
+            </div>
+            {loading ? (
+              <p role="status" className="dp-loading">
+                بنحمّل الأخبار…
+              </p>
+            ) : loadError ? (
+              <div className="dp-empty" role="alert">
+                <h3>الأخبار مش ظاهرة دلوقتي</h3>
+                <button className="dp-inline-link" onClick={onRetry}>
+                  جرّب تاني
+                </button>
+              </div>
+            ) : news.length ? (
+              <div className="dp-news-list">
+                {news.map((n) => (
+                  <article key={n.id}>
+                    {n.created_at && (
+                      <time dateTime={n.created_at}>
+                        {new Date(n.created_at).toLocaleDateString("ar-EG", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                          timeZone: "Africa/Cairo",
+                        })}
+                      </time>
+                    )}
+                    <h3>{n.title}</h3>
+                    <p>{n.body}</p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="dp-empty" data-testid="empty-news">
+                <p>لسه مفيش أخبار منشورة.</p>
+              </div>
+            )}
+          </section>
           <section className="dp-about" data-hiss-reveal>
             <div>
               <h2>
-                {t("من أجل مصر،", "Mn Agl Masr.")}
+                {t("طلاب من علوم،", "Mn Agl Masr.")}
                 <br />
-                {t("بأيدينا إحنا.", "Made by us.")}
+                {t("بنشارك مع بعض", "Made by us.")}
               </h2>
             </div>
             <div>
               <p>
                 {t(
-                  "إحنا طلاب من أجل مصر بكلية العلوم، جامعة القاهرة. بنجمع أفكارنا وطاقتنا في فعاليات وتدريبات وأنشطة تطوعية، عشان ننمّي مهاراتنا، ونوسّع وعينا، ونخدم مجتمعنا.",
+                  "إحنا طلاب من أجل مصر في كلية العلوم، جامعة القاهرة. بنجهّز فعاليات وورش، وبنشارك في أنشطة الكلية والتطوّع. هنا هتلاقي أخبارنا وتفاصيل كل فعالية وطريقة التسجيل فيها.",
                   "We are Mn Agl Masr students at the Faculty of Science, Cairo University. Through events, training and volunteering, we develop our skills, broaden our awareness and contribute to our community.",
                 )}
               </p>
               <p className="dp-secondary">
                 {t(
-                  "كل ما تشارك أكتر، تجمع نقاط أكتر وتفتح لنفسك فرص حصرية. والفعاليات اللي محتاجاك أكتر، بتديك نقاط إضافية.",
+                  "كل فعالية بتحضرها بتضيف لحسابك نقاط. والفعاليات اللي محتاجة متطوّعين أكتر بتدي نقاط زيادة. كده نعرف مين بيشارك باستمرار ونرشّحه للفرص اللي بتتاح للأسرة.",
                   "The more you volunteer, the more points you earn and the closer you get to exclusive opportunities. Events that need you most reward you with extra points.",
                 )}
               </p>
               <a className="dp-inline-link" href="/?join=1" onClick={join}>
-                {t(
-                  "تعالى، مكانك موجود.",
-                  "Come along. There’s a place for you.",
-                )}
+                {t("سجّل معانا", "Come along. There’s a place for you.")}
                 <Arrow size={17} />
               </a>
             </div>
           </section>
-          <section className="dp-home-events">
-            <div className="dp-section-heading" data-hiss-reveal>
-              <div>
-                <h2>{t("نلتقي قريبًا.", "See you soon.")}</h2>
-              </div>
-              <button
-                className="dp-inline-link"
-                onClick={() => navigate("feed")}
-              >
-                {t("كل الفعاليات", "All events")}
-                <Arrow size={18} />
-              </button>
-            </div>
-            {sample && (
-              <p className="dp-example-label">
-                {t(
-                  "أمثلة لعرض التصميم - ليست فعاليات معلنة",
-                  "Design examples - these are not announced events",
-                )}
-              </p>
-            )}
-            <div className="dp-timeline">
-              {loading ? (
-                <p role="status" className="dp-loading">
-                  {t("جارٍ تحميل الفعاليات…", "Loading events…")}
-                </p>
-              ) : list.filter((e) => new Date(e.end_at) >= new Date())
-                  .length ? (
-                cards(
-                  list
-                    .filter((e) => new Date(e.end_at) >= new Date())
-                    .slice(0, 2),
-                )
-              ) : (
-                <div className="dp-empty" data-testid="empty-events">
-                  <CalendarDays size={28} strokeWidth={1.2} />
-                  <h3>
-                    {loadError
-                      ? t("تعذّر تحميل الفعاليات", "Unable to load events")
-                      : t(
-                          "فعالياتنا الجديدة قريبًا",
-                          "Our next events are coming soon",
-                        )}
-                  </h3>
-                  <p>
-                    {loadError
-                      ? t("حاول مرة أخرى بعد قليل", "Please try again shortly")
-                      : t(
-                          "أول ما نعلن عن فعالية، هتلاقيها هنا",
-                          "New events will appear here when announced",
-                        )}
-                  </p>
-                  {loadError && (
-                    <button className="dp-inline-link" onClick={onRetry}>
-                      {t("حاول مجددًا", "Retry")}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </section>
-          {news.length > 0 && (
-            <section className="dp-news">
-              {news.map((n) => (
-                <article key={n.id}>
-                  <h3>{n.title}</h3>
-                  <p>{n.body}</p>
-                </article>
-              ))}
-            </section>
-          )}
           <section className="dp-last-word" data-hiss-reveal>
             <h2>
-              {t("يلا نعمل حاجة", "Let’s make")}
+              {t("اعمل حسابك", "Let’s make")}
               <br />
-              {t("تفرق.", "a difference.")}
+              {t("وشارك في اللي يناسبك", "a difference.")}
             </h2>
             <a className="dp-join dp-join-large" href="/?join=1" onClick={join}>
-              {t("انضم إلينا", "Join us")}
+              {t("سجّل معانا", "Join us")}
               <Arrow size={21} />
             </a>
           </section>
@@ -535,7 +498,7 @@ export function CommunityExperience({
           </div>
           <p className="dp-feed-footnote">
             {t(
-              "عندك سكشن أو محاضرة وقت الفعالية؟ اطلب عذرًا رسميًا عند التسجيل. طلبات الأعذار والتسهيلات مقبولة تلقائيًا.",
+              "عندك سكشن أو محاضرة في نفس معاد الفعالية؟ اكتب بياناتها في طلب العذر وإنت بتسجّل. الأعذار والتسهيلات بتتقبل تلقائي، لكل فعالية لوحدها.",
               "Have a class during an event? Request an official academic excuse when registering. Excuse and accommodation requests are automatically accepted.",
             )}
           </p>
@@ -560,7 +523,7 @@ export function CommunityExperience({
               : t("عن من أجل مصر", "About our community")}
           </button>
           <a href="/?join=1" onClick={join}>
-            {t("انضم إلينا", "Join us")}
+            {t("سجّل معانا", "Join us")}
           </a>
           <span className="dp-copyright">© {new Date().getFullYear()}</span>
         </footer>
