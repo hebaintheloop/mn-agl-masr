@@ -43,17 +43,17 @@ await p.getByRole('button',{name:'العودة للإدارة',exact:true}).clic
 await p.getByRole('tab',{name:'الأخبار',exact:true}).click();await p.getByLabel('عنوان الخبر',{exact:true}).fill('عنوان محفوظ كمسودة');await p.getByLabel('التفاصيل',{exact:true}).fill('خبر تجريبي للواجهة فقط');
 await p.getByRole('button',{name:'نشر الخبر',exact:true}).click();await p.getByRole('alert').filter({hasText:'تعذّر النشر'}).waitFor();assert.equal(await p.getByLabel('عنوان الخبر',{exact:true}).inputValue(),'عنوان محفوظ كمسودة');
 await p.getByRole('tab',{name:'الصفحة الرئيسية',exact:true}).click();await p.getByRole('tab',{name:'الأخبار',exact:true}).click();assert.equal(await p.getByLabel('عنوان الخبر',{exact:true}).inputValue(),'عنوان محفوظ كمسودة');
-await p.getByRole('button',{name:'إنشاء فعالية',exact:true}).click();const dialog=p.getByRole('dialog',{name:'Create event'});await dialog.getByLabel('العنوان',{exact:true}).fill('حدث تجربة الواجهة');await p.keyboard.press('Escape');
+await p.getByRole('button',{name:'إنشاء فعالية',exact:true}).click();const dialog=p.getByRole('dialog',{name:'إنشاء فعالية'});await dialog.getByLabel('العنوان',{exact:true}).fill('حدث تجربة الواجهة');await p.keyboard.press('Escape');
 await p.getByRole('button',{name:'إنشاء فعالية',exact:true}).click();assert.equal(await dialog.getByLabel('العنوان',{exact:true}).inputValue(),'حدث تجربة الواجهة');
 await dialog.getByLabel('الوصف ونقطة التجمع',{exact:true}).fill('تفاصيل للمعاينة فقط');await dialog.getByLabel('المكان',{exact:true}).fill('كلية العلوم');await dialog.getByLabel('الزي المطلوب (اختياري)',{exact:true}).fill('ملابس رسمية');await dialog.getByLabel('البداية',{exact:true}).fill('2026-12-05T10:00');await dialog.getByLabel('النهاية',{exact:true}).fill('2026-12-05T09:00');
 await dialog.getByRole('button',{name:'إنشاء وحفظ رمز الحضور',exact:true}).click();assert.equal(created,null,'Invalid end time must not submit');
-await dialog.getByLabel('النهاية',{exact:true}).fill('2026-12-05T12:00');await dialog.getByRole('button',{name:'إنشاء وحفظ رمز الحضور',exact:true}).click();await p.getByRole('dialog',{name:'Attendance QR'}).getByRole('link',{name:'تحميل للطباعة',exact:true}).waitFor();
+await dialog.getByLabel('النهاية',{exact:true}).fill('2026-12-05T12:00');await dialog.getByRole('button',{name:'إنشاء وحفظ رمز الحضور',exact:true}).click();await p.getByRole('dialog',{name:'رمز حضور الفعالية'}).getByRole('link',{name:'تحميل للطباعة',exact:true}).waitFor();
 assert.equal(created.dress_code,'ملابس رسمية');assert.equal(created.start_at,'2026-12-05T08:00:00.000Z');assert.equal(created.end_at,'2026-12-05T10:00:00.000Z');await p.getByRole('button',{name:'تم',exact:true}).click();
 await p.getByRole('tab',{name:'الفعاليات',exact:true}).click();
 for(const width of [1024,768,390,375]){await p.setViewportSize({width,height:900});assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`Overflow ${width}`)}
 await p.screenshot({path:'/workspace/work/leader-workspace-phone.png',fullPage:true});
 await p.getByRole('button',{name:'إدارة الحضور',exact:true}).first().click();await p.getByText('أحمد محمود',{exact:true}).waitFor();await p.screenshot({path:'/workspace/work/leader-roster-phone.png',fullPage:true});
-await p.getByRole('button',{name:'تغيير المظهر',exact:true}).click();await p.getByRole('button',{name:'EN',exact:true}).click();assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await p.screenshot({path:'/workspace/work/leader-roster-dark-en.png',fullPage:true});
+await p.getByRole('button',{name:'تغيير المظهر',exact:true}).click();assert.equal(await p.getByRole('button',{name:'EN',exact:true}).count(),0);assert.equal(await p.locator('html').getAttribute('lang'),'ar');assert.equal(await p.locator('html').getAttribute('dir'),'rtl');assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await p.screenshot({path:'/workspace/work/leader-roster-dark-ar.png',fullPage:true});
 const studentContext=await browser.newContext({ignoreHTTPSErrors:true});
 const studentPage=await studentContext.newPage();
 await studentPage.route('**/api/action', route=>route.fulfill({json:route.request().method()==='GET'?{events:[event,second],home:{},news:[]}:{...user,profile:{...user.profile,role:'student'}}}));
@@ -67,5 +67,5 @@ await studentPage.getByRole('heading',{name:'ورشة التنظيم',exact:true
 assert.equal(await studentPage.getByText('الزي المطلوب',{exact:true}).count(),0);
 await studentContext.close();
 assert.deepEqual(errors,[]);
-console.log('PASS leader dashboard, event isolation, search, filtered export, cancellation, failed check-in retry, news drafts, creation drafts, Cairo schedule, QR, 375-1024px, dark/English');
+console.log('PASS leader dashboard, event isolation, search, filtered export, cancellation, failed check-in retry, news drafts, creation drafts, Cairo schedule, QR, 375-1024px, dark/Arabic-only');
 await browser.close();

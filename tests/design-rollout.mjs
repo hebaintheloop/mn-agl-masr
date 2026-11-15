@@ -181,14 +181,16 @@ for (const role of ["student", "leader"]) {
       .getByRole("button", { name: "تغيير المظهر", exact: true })
       .click();
     await contrast(page);
-    await page.getByRole("button", { name: "EN", exact: true }).click();
+    assert.equal(await page.getByRole("button", { name: "EN", exact: true }).count(), 0);
+    assert.equal(await page.locator("html").getAttribute("lang"), "ar");
+    assert.equal(await page.locator("html").getAttribute("dir"), "rtl");
     assert.equal(
       await page.evaluate(
         () => document.documentElement.scrollWidth > innerWidth,
       ),
       false,
     );
-    await page.getByRole("button", { name: "عربي", exact: true }).click();
+    assert.equal(await page.getByRole("button", { name: "عربي", exact: true }).count(), 0);
   }
   await page.screenshot({
     path: `/workspace/work/rollout-event-phone-${role}.png`,
@@ -212,7 +214,7 @@ for (const role of ["student", "leader"]) {
     await page
       .getByRole("button", { name: "إنشاء فعالية", exact: true })
       .click();
-    await page.getByRole("dialog", { name: "Create event" }).waitFor();
+    await page.getByRole("dialog", { name: "إنشاء فعالية" }).waitFor();
     await page.screenshot({
       path: "/workspace/work/rollout-create-event-phone.png",
       fullPage: true,
@@ -245,7 +247,7 @@ for (const role of ["student", "leader"]) {
   });
   assert.equal(errors.length, 0, JSON.stringify(errors));
   console.log(
-    `${role} UI: home, events, requests, account, leaderboard, dark mode, languages and solid-label contrast passed.`,
+    `${role} UI: home, events, requests, account, leaderboard, dark mode, Arabic-only layout and solid-label contrast passed.`,
   );
   await context.close();
 }

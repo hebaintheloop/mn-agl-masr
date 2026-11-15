@@ -68,7 +68,6 @@ const exampleTitles = [
 type CommunityProps = {
   embedded?: boolean;
   live?: boolean;
-  language?: boolean;
   content?: {
     events: EventItem[];
     home: { video_url?: string; poster_url?: string; gallery_urls?: string[] };
@@ -87,7 +86,6 @@ export default function DesignPreview() {
 export function CommunityExperience({
   embedded = false,
   live = false,
-  language,
   content,
   loading = false,
   loadError = false,
@@ -96,8 +94,7 @@ export function CommunityExperience({
   onEvent,
   onJoin,
 }: CommunityProps) {
-  const [localEn, setEn] = useState(false),
-    [dark, setDark] = useState(false),
+  const [dark, setDark] = useState(false),
     [tab, setTab] = useState("welcome"),
     [paused, setPaused] = useState(false),
     [past, setPast] = useState(false),
@@ -113,7 +110,7 @@ export function CommunityExperience({
     >([]);
   const motionRoot = useRef<HTMLDivElement>(null);
   useHissReveals(motionRoot, tab);
-  const en = language ?? localEn;
+  const en = false;
   const events = content?.events ?? fetchedEvents;
   const home = content?.home ?? fetchedHome;
   const news = content?.news ?? fetchedNews;
@@ -140,9 +137,9 @@ export function CommunityExperience({
       .catch(() => {});
   }, [embedded]);
   useEffect(() => {
-    document.documentElement.dir = en ? "ltr" : "rtl";
-    document.documentElement.lang = en ? "en" : "ar";
-  }, [en]);
+    document.documentElement.dir = "rtl";
+    document.documentElement.lang = "ar";
+  }, []);
   useEffect(() => {
     if (!selected) return;
     const previous = document.activeElement as HTMLElement;
@@ -315,7 +312,7 @@ export function CommunityExperience({
             <a href="/?view=leaderboard">{t("المتصدرون", "Leaderboard")}</a>
             <button
               className="dp-icon"
-              aria-label="Toggle theme"
+              aria-label="تغيير المظهر"
               onClick={() => {
                 const next = !dark;
                 setDark(next);
@@ -326,9 +323,6 @@ export function CommunityExperience({
               }}
             >
               {dark ? <Sun size={17} /> : <Moon size={17} />}
-            </button>
-            <button className="dp-language" onClick={() => setEn(!en)}>
-              {en ? "عربي" : "EN"}
             </button>
             <a className="dp-join" href="/?join=1" onClick={join}>
               {t("انضم إلينا", "Join us")}
@@ -582,7 +576,7 @@ export function CommunityExperience({
           >
             <button
               className="dp-dialog-close dp-icon"
-              aria-label="Close"
+              aria-label="إغلاق"
               onClick={() => setSelected(null)}
             >
               <X size={20} />

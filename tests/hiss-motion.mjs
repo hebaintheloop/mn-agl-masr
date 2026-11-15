@@ -32,11 +32,11 @@ await page.waitForFunction(()=>Array.from(document.querySelectorAll('.hiss-image
 const first=await page.locator('.hiss-image-layer').first().evaluate(e=>getComputedStyle(e).transform);
 assert.equal(first,'none');
 await page.emulateMedia({reducedMotion:'no-preference'});
-await page.getByRole('button',{name:'Toggle theme',exact:true}).click();
-await page.getByRole('button',{name:'EN',exact:true}).click();
-assert.equal(await page.locator('html').getAttribute('dir'),'ltr');
+await page.getByRole('button',{name:'تغيير المظهر',exact:true}).click();
+assert.equal(await page.getByRole('button',{name:'EN',exact:true}).count(),0);
+assert.equal(await page.locator('html').getAttribute('dir'),'rtl');
 assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-await page.screenshot({path:'/workspace/work/hiss-updated-dark-en.png',fullPage:true});
+await page.screenshot({path:'/workspace/work/hiss-updated-dark-ar.png',fullPage:true});
 assert.equal(errors.length,0,errors.join('\n'));
-console.log('PASS unframed images, loaded images, pause/resume, offscreen pause, reduced motion, 375/390px, dark/English, no browser errors');
+console.log('PASS unframed images, loaded images, pause/resume, offscreen pause, reduced motion, 375/390px, dark/Arabic-only, no browser errors');
 await browser.close();

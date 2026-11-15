@@ -79,8 +79,8 @@ export default function App() {
     poster_url?: string;
     gallery_urls?: string[];
   }>({});
-  const [en, setEn] = useState(false),
-    [dark, setDark] = useState(false),
+  const en = false;
+  const [dark, setDark] = useState(false),
     [view, setView] = useState("home"),
     [auth, setAuth] = useState<string | null>(null),
     [me, setMe] = useState<Me | null>(null),
@@ -149,9 +149,9 @@ export default function App() {
     refreshMe();
   }, []);
   useEffect(() => {
-    document.documentElement.lang = en ? "en" : "ar";
-    document.documentElement.dir = en ? "ltr" : "rtl";
-  }, [en]);
+    document.documentElement.lang = "ar";
+    document.documentElement.dir = "rtl";
+  }, []);
   useEffect(() => {
     if (view === "leaderboard" && me)
       api("leaderboard")
@@ -279,7 +279,7 @@ export default function App() {
           <button
             className="wordmark"
             onClick={() => go("home")}
-            aria-label="Home"
+            aria-label="الرئيسية"
           >
             <img
               className="app-logo"
@@ -301,7 +301,7 @@ export default function App() {
               </small>
             </span>
           </button>
-          <nav className={menu ? "open" : ""} aria-label="Main">
+          <nav className={menu ? "open" : ""} aria-label="القائمة الرئيسية">
             <button
               className={view === "home" ? "active" : ""}
               onClick={() => go("home")}
@@ -351,9 +351,6 @@ export default function App() {
             >
               {dark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
-            <button className="language" onClick={() => setEn(!en)}>
-              {en ? "عربي" : "EN"}
-            </button>
             {me ? (
               <button
                 className="small-btn"
@@ -395,7 +392,7 @@ export default function App() {
             <button
               className="mobile-menu icon-btn"
               onClick={() => setMenu(!menu)}
-              aria-label="Menu"
+              aria-label="القائمة"
               aria-expanded={menu}
             >
               <Menu size={20} />
@@ -412,7 +409,7 @@ export default function App() {
       {error && !auth && !creating && (
         <div role="alert" className="error-bar">
           {error}
-          <button onClick={() => setError("")} aria-label="Close">
+          <button onClick={() => setError("")} aria-label="إغلاق">
             <X size={16} />
           </button>
         </div>
@@ -437,7 +434,6 @@ export default function App() {
           <CommunityExperience
             embedded
             live
-            language={en}
             content={{ home, events, news }}
             loading={!initialized.current && !loadFailed}
             loadError={loadFailed}
@@ -841,7 +837,7 @@ export default function App() {
               <h1>{t("حسابي", "My account")}</h1>
               <button
                 className="icon-btn"
-                aria-label="Log out"
+                aria-label="تسجيل الخروج"
                 onClick={() =>
                   run(async () => {
                     await api("logout", {}, true);
@@ -1030,7 +1026,7 @@ export default function App() {
           >
             <button
               className="close icon-btn"
-              aria-label="Close"
+              aria-label="إغلاق"
               onClick={() => {
                 setAuth(null);
                 setError("");
@@ -1202,7 +1198,7 @@ export default function App() {
             className="modal"
             role="dialog"
             aria-modal="true"
-            aria-label="Recovery code"
+            aria-label="كود الاستعادة"
           >
             <h2>{t("احفظ كود استعادة حسابك", "Save your recovery code")}</h2>
             <p>
@@ -1219,7 +1215,7 @@ export default function App() {
               onClick={() => {
                 const a = document.createElement("a");
                 a.href = URL.createObjectURL(
-                  new Blob(["Mn Agl Masr recovery code\n" + recovery], {
+                  new Blob(["كود استعادة حساب من أجل مصر\n" + recovery], {
                     type: "text/plain",
                   }),
                 );
@@ -1243,11 +1239,11 @@ export default function App() {
             className="modal"
             role="dialog"
             aria-modal="true"
-            aria-label="Create event"
+            aria-label="إنشاء فعالية"
           >
             <button
               className="close icon-btn"
-              aria-label="Close"
+              aria-label="إغلاق"
               onClick={() => {
                 setCreating(false);
                 setError("");
@@ -1424,7 +1420,7 @@ export default function App() {
             className="modal qr-modal"
             role="dialog"
             aria-modal="true"
-            aria-label="Attendance QR"
+            aria-label="رمز حضور الفعالية"
           >
             <h2>{t("رمز حضور الفعالية", "Event attendance QR")}</h2>
             <p>
@@ -1435,7 +1431,7 @@ export default function App() {
             </p>
             {qrImage ? (
               <>
-                <img src={qrImage} alt="Attendance QR" />
+                <img src={qrImage} alt="رمز حضور الفعالية" />
                 <a
                   className="primary full"
                   href={qrImage}
