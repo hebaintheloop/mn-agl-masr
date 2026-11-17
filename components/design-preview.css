@@ -417,12 +417,25 @@
   font-size: 80px;
   font-weight: 500;
   line-height: 1.25;
-  margin: 22px 0 25px;
+  margin: 22px 0 48px;
 }
 .dp-join-large {
   font-size: 17px;
   padding: 12px 25px !important;
   gap: 40px;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
+}
+.dp-last-word .dp-join-large:hover,
+.dp-last-word .dp-join-large:focus-visible {
+  background: #ce1126;
+  color: #ffffff;
+  border-color: #ce1126;
+}
+.dp-last-word .dp-join-large:hover svg,
+.dp-last-word .dp-join-large:focus-visible svg {
+  color: #ffffff;
 }
 .dp-footer {
   max-width: 1250px;
@@ -844,7 +857,7 @@ html[lang="en"] .dp-last-word h2 {
   }
   .dp-last-word h2 {
     font-size: 58px;
-    margin: 20px 0;
+    margin: 20px 0 40px;
   }
   .dp-join-large {
     font-size: 14px;

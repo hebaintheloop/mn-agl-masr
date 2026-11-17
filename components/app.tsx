@@ -108,6 +108,9 @@ export default function App() {
     [recovery, setRecovery] = useState(""),
     [menu, setMenu] = useState(false),
     [rows, setRows] = useState<{ full_name: string; points: number }[]>([]),
+    [leaderboardLoading, setLeaderboardLoading] = useState(true),
+    [leaderboardFailed, setLeaderboardFailed] = useState(false),
+    [leaderboardRetry, setLeaderboardRetry] = useState(0),
     [creating, setCreating] = useState(false),
     [uploadBusy, setUploadBusy] = useState(false),
     [qr, setQr] = useState(""),
@@ -192,11 +195,25 @@ export default function App() {
     document.documentElement.dir = "rtl";
   }, []);
   useEffect(() => {
-    if (view === "leaderboard" && me)
-      api("leaderboard")
-        .then((d) => setRows(d.rows))
-        .catch((e) => setError(e.message));
-  }, [view, me]);
+    if (view !== "leaderboard") return;
+    let active = true;
+    setLeaderboardLoading(true);
+    setLeaderboardFailed(false);
+    setRows([]);
+    api("leaderboard")
+      .then((d) => {
+        if (active) setRows(d.rows);
+      })
+      .catch(() => {
+        if (active) setLeaderboardFailed(true);
+      })
+      .finally(() => {
+        if (active) setLeaderboardLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [view, leaderboardRetry]);
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(""), 6000);
@@ -386,14 +403,14 @@ export default function App() {
                 {t("الإدارة", "Manage")}
               </button>
             )}
+            <button
+              className={view === "leaderboard" ? "active" : ""}
+              onClick={() => go("leaderboard")}
+            >
+              {t("المتصدرون", "Leaderboard")}
+            </button>
             {me && (
               <>
-                <button
-                  className={view === "leaderboard" ? "active" : ""}
-                  onClick={() => go("leaderboard")}
-                >
-                  {t("المتصدرون", "Leaderboard")}
-                </button>
                 <button onClick={() => go("account")}>
                   {t("حسابي", "My account")}
                 </button>
@@ -479,12 +496,12 @@ export default function App() {
         </div>
       )}
       <main className={view === "home" ? "home-main" : "workspace-main"}>
-        {["account", "leaderboard"].includes(view) && !authChecked && (
+        {view === "account" && !authChecked && (
           <section className="app-container narrow" role="status">
             {t("جارٍ تحميل حسابك…", "Loading your account…")}
           </section>
         )}
-        {["account", "leaderboard"].includes(view) && authChecked && !me && (
+        {view === "account" && authChecked && !me && (
           <section className="app-container narrow">
             <Empty
               title={t("أهلًا بك في من أجل مصر", "Welcome to Mn Agl Masr")}
@@ -918,14 +935,23 @@ export default function App() {
               </div>
             </section>
           )}
-        {view === "leaderboard" && me && (
+        {view === "leaderboard" && (
           <section className="app-container narrow">
             <div className="page-heading">
               <h1>{t("المتصدرون", "Leaderboard")}</h1>
               <Trophy size={32} />
             </div>
             <div className="leaderboard">
-              {rows.length ? (
+              {leaderboardLoading ? (
+                <p role="status">بنحمّل المتصدرين…</p>
+              ) : leaderboardFailed ? (
+                <Empty
+                  title="مش قادرين نعرض المتصدرين دلوقتي"
+                  text="جرّب تاني بعد لحظة."
+                  action={() => setLeaderboardRetry((n) => n + 1)}
+                  label="جرّب تاني"
+                />
+              ) : rows.length ? (
                 rows.map((r, i) => (
                   <div key={i}>
                     <span className="rank">{i + 1}</span>

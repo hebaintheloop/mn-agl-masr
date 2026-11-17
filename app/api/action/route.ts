@@ -47,6 +47,14 @@ export async function POST(req: NextRequest) {
     ];
     if (!allowed.includes(b.action))
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    if (b.action === "leaderboard") {
+      z.object({ action: z.literal("leaderboard") })
+        .strict()
+        .parse(b);
+      return NextResponse.json(await backend("leaderboard"), {
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
     if (b.action === "image-upload")
       z.object({
         action: z.literal("image-upload"),
