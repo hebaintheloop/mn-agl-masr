@@ -1163,3 +1163,129 @@ html[lang="ar"] .dp h3 {
     font-size: 16px;
   }
 }
+
+/* A short, unboxed guide follows the introduction to the student activity. */
+.dp-explainer {
+  max-width: 1120px;
+  margin: 90px auto;
+  padding: 0 30px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 64px;
+  align-items: start;
+  scroll-margin-top: 24px;
+}
+.dp-explainer h2 {
+  margin: 0;
+  font-size: 40px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+.dp-explainer-copy p,
+.dp-points-explanation dd {
+  margin: 0 0 18px;
+  font-size: 16px;
+  line-height: 1.95;
+  color: var(--dp-muted);
+  overflow-wrap: anywhere;
+}
+.dp-explainer-copy .dp-inline-link {
+  margin-top: 6px;
+  min-height: 44px;
+}
+.dp-points-explanation {
+  margin: 0;
+}
+.dp-points-explanation > div + div {
+  margin-top: 26px;
+}
+.dp-points-explanation dt {
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.7;
+  margin-bottom: 8px;
+}
+#how-to-use-requests {
+  scroll-margin-top: 24px;
+}
+@media (max-width: 700px) {
+  .dp-explainer {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+    margin: 65px auto;
+    padding: 0 22px;
+  }
+  .dp-explainer h2 {
+    font-size: 32px;
+  }
+  .dp-points-explanation dt {
+    font-size: 19px;
+  }
+}
+.dp-guide {
+  max-width: 1120px;
+  margin: 90px auto;
+  padding: 0 30px;
+  scroll-margin-top: 24px;
+}
+.dp-guide h2 {
+  margin: 0 0 36px;
+  font-size: 44px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.dp-guide-steps {
+  counter-reset: guide-step;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 36px 56px;
+}
+.dp-guide-steps > li {
+  counter-increment: guide-step;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 14px;
+}
+.dp-guide-steps > li::before {
+  content: counter(guide-step, arabic-indic);
+  color: #ce1126;
+  font-size: 23px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+.dp-guide h3 {
+  margin: 0 0 10px;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+.dp-guide p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.95;
+  color: var(--dp-muted);
+  overflow-wrap: anywhere;
+}
+html[data-theme="dark"] .dp-guide-steps > li::before {
+  color: #ff6472;
+}
+@media (max-width: 700px) {
+  .dp-guide {
+    margin: 65px auto;
+    padding: 0 22px;
+  }
+  .dp-guide h2 {
+    font-size: 32px;
+    margin-bottom: 28px;
+  }
+  .dp-guide-steps {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+  .dp-guide h3 {
+    font-size: 19px;
+  }
+}

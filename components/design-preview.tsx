@@ -176,7 +176,11 @@ export function CommunityExperience({
   );
   const img = (i: number) =>
     home.gallery_urls?.[i] ||
-    ["/assets/homepage-1.jpg", "/assets/homepage-2.jpg", "/assets/homepage-3.jpg"][i];
+    [
+      "/assets/homepage-1.jpg",
+      "/assets/homepage-2.jpg",
+      "/assets/homepage-3.jpg",
+    ][i];
   const title = (e: EventItem) =>
     en && e.id.startsWith("preview-")
       ? exampleTitles[examples.findIndex((x) => x.id === e.id)]
@@ -441,6 +445,122 @@ export function CommunityExperience({
               <a className="dp-inline-link" href="/?join=1" onClick={join}>
                 {t("سجّل معانا", "Come along. There’s a place for you.")}
                 <Arrow size={17} />
+              </a>
+            </div>
+          </section>
+          <section
+            className="dp-explainer"
+            id="accessibility"
+            aria-labelledby="accessibility-heading"
+          >
+            <h2 id="accessibility-heading">من أجل مصر متاحة للكل</h2>
+            <div className="dp-explainer-copy">
+              <p>
+                لو محتاج تسهيلات تساعدك تحضر وتشارك براحتك، اكتب اللي يناسبك
+                وإنت بتسجّل في الفعالية.
+              </p>
+              <p>
+                زي مكان قريب من المدخل، ترتيب مناسب للجلوس، أو مساعدة في
+                التنقّل. قول لنا محتاج إيه عشان القادة يقدروا يرتّبوا معاك.
+              </p>
+              <p>
+                طلب التسهيلات بيتقبل تلقائيًا، وتفاصيله مش بتظهر لباقي الطلاب.
+                الطلب بيخص الفعالية اللي اخترتها، فلو محتاج تسهيلات في فعالية
+                تانية، اكتب طلب جديد فيها.
+              </p>
+              <a className="dp-inline-link" href="#how-to-use-requests">
+                إزاي أضيف طلب التسهيلات؟
+              </a>
+            </div>
+          </section>
+          <section
+            className="dp-guide"
+            id="how-to-use"
+            aria-labelledby="how-to-use-heading"
+          >
+            <h2 id="how-to-use-heading">إزاي تستخدم الموقع؟</h2>
+            <ol className="dp-guide-steps">
+              <li>
+                <div>
+                  <h3>اعمل حسابك</h3>
+                  <p>
+                    سجّل اسمك، كودك الجامعي من غير شرطات، رقم موبايلك، الرقم
+                    القومي، وباسورد تختاره. احفظ كود الاستعادة اللي هيظهرلك عشان
+                    تقدر ترجع لحسابك لو نسيت الباسورد.
+                  </p>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <h3>اختار فعالية وأكد مشاركتك</h3>
+                  <p>
+                    بعد ما تدخل بحسابك، افتح الفعاليات وشوف اللي يناسبك. افتح
+                    تفاصيل الفعالية واضغط «أكد مشاركتك واحفظ الطلبات». ولو حد
+                    بعتلك رابط فعالية، سجّل دخولك أو اعمل حساب عشان تقدر تشارك.
+                  </p>
+                </div>
+              </li>
+              <li id="how-to-use-requests">
+                <div>
+                  <h3>محتاج عذر أكاديمي أو تسهيلات؟</h3>
+                  <p>
+                    في نموذج التسجيل، اكتب أي تسهيلات محتاجها عشان تقدر تحضر
+                    وتشارك، زي ترتيب مناسب للجلوس أو مساعدة في التنقّل. ولو عندك
+                    سكشن أو محاضرة في نفس معاد الفعالية، اكتب بياناتها في طلب
+                    العذر الأكاديمي عشان غيابك عنها مايتحسبش. الطلبات بتتقبل
+                    تلقائيًا، وبتخص الفعالية دي بس. بعدها اضغط «أكد مشاركتك
+                    واحفظ الطلبات» عشان تتحفظ مع تسجيلك.
+                  </p>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <h3>سجّل حضورك وخد نقاطك</h3>
+                  <p>
+                    يوم الفعالية، افتح تفاصيلها واضغط «مسح رمز حضوري» وإنت داخل
+                    بحسابك، وامسح رمز QR المطبوع عند المنظّمين. لازم تكون مسجّل
+                    في الفعالية الأول. بعد تأكيد الحضور، نقاطك بتتضاف تلقائيًا
+                    وتقدر تتابعها من حسابك والمتصدرين.
+                  </p>
+                </div>
+              </li>
+            </ol>
+          </section>
+          <section
+            className="dp-explainer"
+            id="how-points-work"
+            aria-labelledby="points-heading"
+          >
+            <h2 id="points-heading">النقاط بتتحسب إزاي؟</h2>
+            <div className="dp-explainer-copy">
+              <dl className="dp-points-explanation">
+                <div>
+                  <dt>كل فعالية ليها نقاطها</dt>
+                  <dd>
+                    هتلاقي عدد النقاط في تفاصيل الفعالية قبل ما تسجّل.
+                    والفعاليات اللي محتاجة متطوّعين أكتر ممكن تدي نقاط زيادة،
+                    حسب العدد المعلن فيها.
+                  </dd>
+                </div>
+                <div>
+                  <dt>الحضور هو اللي بيضيف النقاط</dt>
+                  <dd>
+                    التسجيل لوحده مش بيضيف نقاط. لما حضورك يتأكد بمسح الرمز من
+                    الموقع أو بتسجيل القائد ليك، نقاط الفعالية بتتضاف لحسابك مرة
+                    واحدة.
+                  </dd>
+                </div>
+                <div>
+                  <dt>تابع مشاركتك والفرص اللي جاية</dt>
+                  <dd>
+                    شوف نقاطك في حسابك وترتيبك في المتصدرين. كل ما تشارك وتتطوّع
+                    أكتر، نقاطك بتزيد، وده بيساعد القادة يرشّحوا الطلاب
+                    المشاركين للفرص المميزة اللي بتتاح للأسرة.
+                  </dd>
+                </div>
+              </dl>
+              <a className="dp-inline-link" href="/?view=leaderboard">
+                شوف المتصدرين
               </a>
             </div>
           </section>
