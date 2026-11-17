@@ -285,5 +285,5 @@ await p.getByRole("dialog", { name: "كود الاستعادة", exact: true }).
 assert.deepEqual(errors, []);
 await browser.close();
 console.log(
-  "PASS actual Noto font, college-code wording, accessible mobile login/menu, input focus and Arabic digits, duplicate-submit/close protection, confirmed RSVP retained after refresh failure, edit label, profile retry, event duration and deep-link retry, guest/student/leader responsive targets 375-1365px, no browser errors",
+  "PASS actual Noto font, college-code wording, accessible mobile login/menu, input focus and Arabic digits, duplicate-submit/close protection, confirmed RSVP retained after refresh failure, edit label, profile retry, event duration and deep-link retry, guest/student/leader responsive targets 360-1365px, no browser errors",
 );

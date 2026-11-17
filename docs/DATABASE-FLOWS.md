@@ -1,6 +1,6 @@
 # What the app saves
 
-Verified against the source and live Supabase schema and attendance functions on 18 November 2026, Cairo time. This describes the current implementation, not a proposed architecture. No student records were inspected for this explanation.
+Verified against the source and live Supabase schema and attendance functions on 17 November 2026, Cairo time. This describes the current implementation, not a proposed architecture. No student records were inspected for this explanation.
 
 ```mermaid
 flowchart TD

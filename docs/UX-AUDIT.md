@@ -1,6 +1,6 @@
 # Navigation, form and feedback audit
 
-18 November 2026, Cairo time. Scope: guest, student and leader navigation, authentication forms, event RSVP, leader event/roster tools, responsive layout and copy. No production event, attendance, points or identity records were changed during the audit.
+17 November 2026, Cairo time. Scope: guest, student and leader navigation, authentication forms, event RSVP, leader event/roster tools, responsive layout and copy. No production event, attendance, points or identity records were changed during the audit.
 
 ## Fixed
 

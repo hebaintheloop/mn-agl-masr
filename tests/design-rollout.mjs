@@ -157,7 +157,8 @@ for (const role of ["student", "leader"]) {
     })
     .waitFor();
   const detailTime = await page.locator(".event-meta small").first().innerText();
-  assert.equal(cardTime,detailTime,"Event cards and event details must show the same Cairo time");
+  assert.equal(cardTime, detailTime.split(" إلى ")[0], "Event cards and details must show the same Cairo start time");
+  assert(detailTime.includes("بتوقيت القاهرة"), "Details should state the timezone");
   await contrast(page);
   if (role === "leader") {
     await page
