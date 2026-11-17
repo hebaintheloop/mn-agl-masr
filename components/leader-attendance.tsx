@@ -19,29 +19,17 @@ export type LeaderEvent = {
   cover_url: string | null;
   dress_code?: string;
 };
-type Row = {
-  user_id: string | null;
-  going: boolean;
-  excuse: string;
-  accommodation: string;
-  present: boolean;
-  has_rsvp?: boolean;
-  registered_before?: boolean;
-  pending_account?: boolean;
-  points?: number;
-  profiles: { full_name: string; phone: string; student_code: string };
-};
+import {
+  filterRoster,
+  makeRosterReport,
+  rosterViews,
+  type RosterRow as Row,
+  type RosterView,
+} from "@/lib/roster-report";
 export type LeaderApi = (
   action: string,
   data?: Record<string, unknown>,
 ) => Promise<any>;
-const normalize = (s: string) =>
-  s
-    .normalize("NFKC")
-    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
-    .replace(/[أإآ]/g, "ا")
-    .replace(/[\u064B-\u065F\u0640\s+\-]/g, "")
-    .toLocaleLowerCase();
 export function LeaderAttendance({
   event,
   en,
@@ -62,13 +50,15 @@ export function LeaderAttendance({
   const [code, setCode] = useState(""),
     [adding, setAdding] = useState(false);
   const addBusy = useRef(false);
+  const exportBusy = useRef(false);
+  const [exporting, setExporting] = useState<"xlsx" | "pdf" | null>(null);
   const [open, setOpen] = useState(initialOpen),
     [rows, setRows] = useState<Row[]>([]),
     [loaded, setLoaded] = useState(false),
     [loading, setLoading] = useState(false),
     [error, setError] = useState(""),
     [query, setQuery] = useState(""),
-    [filter, setFilter] = useState("all"),
+    [filter, setFilter] = useState<RosterView>("all"),
     [pending, setPending] = useState<Set<string>>(new Set()),
     [notice, setNotice] = useState("");
   const version = useRef(0),
@@ -148,32 +138,16 @@ export function LeaderAttendance({
       if (mounted.current) setPending(new Set(inflight.current));
     }
   }
-  const active = rows.filter((r) => r.going !== false || r.present),
-    rsvpCount = rows.filter((r) => r.has_rsvp ?? r.going !== false).length,
+  const rsvpCount = rows.filter((r) => r.has_rsvp ?? r.going !== false).length,
     present = rows.filter((r) => r.present).length,
     waiting = rows.filter(
       (r) => (r.has_rsvp ?? r.going !== false) && !r.present,
     ).length,
-    requests = active.filter((r) => r.excuse || r.accommodation).length;
-  const list = (
-    filter === "cancelled" ? rows.filter((r) => r.going === false) : active
-  )
-    .filter((r) =>
-      filter === "waiting"
-        ? !r.present
-        : filter === "present"
-          ? r.present
-          : filter === "requests"
-            ? !!(r.excuse || r.accommodation)
-            : true,
-    )
-    .filter(
-      (r) =>
-        !query ||
-        [r.profiles.full_name, r.profiles.phone, r.profiles.student_code].some(
-          (s) => normalize(s).includes(normalize(query)),
-        ),
-    );
+    requests = filterRoster(rows, "requests", "").length;
+  const list = filterRoster(rows, filter, query);
+  const requestView = filter === "accommodations" || filter === "excuses";
+  const accommodationCount = filterRoster(rows, "accommodations", "").length;
+  const excuseCount = filterRoster(rows, "excuses", "").length;
   const attendanceOpen = now >= new Date(event.start_at).getTime() - 3600000;
   async function addCode(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -214,68 +188,29 @@ export function LeaderAttendance({
       if (mounted.current) setAdding(false);
     }
   }
-  function download() {
-    const fields = en
-      ? [
-          "Name",
-          "Student code",
-          "Phone",
-          "Accommodation",
-          "Academic excuse",
-          "RSVP",
-          "Attended",
-          "Account",
-        ]
-      : [
-          "الاسم",
-          "كود الطالب",
-          "الهاتف",
-          "التسهيلات",
-          "العذر الأكاديمي",
-          "التسجيل",
-          "الحضور",
-          "الحساب",
-        ];
-    const csv =
-      "\uFEFF" +
-      [
-        fields,
-        ...list.map((r) => [
-          r.profiles.full_name,
-          r.profiles.student_code,
-          r.profiles.phone,
-          r.accommodation,
-          r.excuse,
-          r.going === false
-            ? t("ملغي", "Cancelled")
-            : r.registered_before === false
-              ? "بدون تسجيل مسبق"
-              : t("مسجل", "Registered"),
-          r.present ? t("حاضر", "Present") : t("لم يحضر", "Not checked in"),
-          r.pending_account ? "بانتظار إنشاء الحساب" : "حساب موجود",
-        ]),
-      ]
-        .map((row) =>
-          row
-            .map(
-              (v) =>
-                '"' +
-                String(v ?? "")
-                  .replace(/^[\s]*[=+\-@\t\r]/, "'")
-                  .replaceAll('"', '""') +
-                '"',
-            )
-            .join(","),
-        )
-        .join("\r\n");
-    const url = URL.createObjectURL(
-      new Blob([csv], { type: "text/csv;charset=utf-8;" }),
-    );
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `event-${event.id}-${filter}.csv`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  async function download(format: "xlsx" | "pdf") {
+    if (exportBusy.current || !loaded || !list.length) return;
+    exportBusy.current = true;
+    setExporting(format);
+    setError("");
+    // Snapshot the selected view and search before loading the download library.
+    const report = makeRosterReport(event, filter, query, list);
+    try {
+      if (format === "xlsx")
+        await (await import("@/lib/roster-xlsx")).downloadExcel(report);
+      else await (await import("@/lib/roster-pdf")).downloadPdf(report);
+      if (mounted.current) setNotice("التقرير جاهز، هتلاقيه في التنزيلات.");
+    } catch (e) {
+      if (mounted.current)
+        setError(
+          e instanceof Error && /[\u0600-\u06ff]/.test(e.message)
+            ? e.message
+            : "التقرير ماتحمّلش. جرّب تاني.",
+        );
+    } finally {
+      exportBusy.current = false;
+      if (mounted.current) setExporting(null);
+    }
   }
   return (
     <section
@@ -332,7 +267,10 @@ export function LeaderAttendance({
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
               />
-              <button className="primary" disabled={adding || pending.size > 0 || !attendanceOpen}>
+              <button
+                className="primary"
+                disabled={adding || pending.size > 0 || !attendanceOpen}
+              >
                 {adding ? (
                   <LoaderCircle size={16} className="spin" />
                 ) : (
@@ -375,14 +313,32 @@ export function LeaderAttendance({
             >
               <RefreshCw size={16} className={loading ? "spin" : ""} />
             </button>
-            <button
-              className="outline"
-              onClick={download}
-              disabled={!loaded || !list.length}
-            >
-              <Download size={16} />
-              {t("تصدير النتائج", "Export results")}
-            </button>
+            <div className="roster-downloads" aria-label="تنزيل النتائج">
+              <button
+                className="outline"
+                onClick={() => download("xlsx")}
+                disabled={!loaded || !list.length || !!exporting || loading}
+              >
+                {exporting === "xlsx" ? (
+                  <LoaderCircle size={16} className="spin" />
+                ) : (
+                  <Download size={16} />
+                )}
+                تنزيل Excel
+              </button>
+              <button
+                className="outline"
+                onClick={() => download("pdf")}
+                disabled={!loaded || !list.length || !!exporting || loading}
+              >
+                {exporting === "pdf" ? (
+                  <LoaderCircle size={16} className="spin" />
+                ) : (
+                  <Download size={16} />
+                )}
+                تنزيل PDF
+              </button>
+            </div>
           </div>
           <div
             className="roster-filters"
@@ -393,13 +349,15 @@ export function LeaderAttendance({
               ["all", t("الكل", "All")],
               ["waiting", t("لم يحضر", "Not checked in")],
               ["present", t("حاضر", "Present")],
+              ["accommodations", `التسهيلات (${accommodationCount})`],
+              ["excuses", `الأعذار الأكاديمية (${excuseCount})`],
               ["requests", t("أعذار وتسهيلات", "Requests")],
               ["cancelled", t("ألغوا المشاركة", "Cancelled")],
             ].map(([id, title]) => (
               <button
                 key={id}
                 aria-pressed={filter === id}
-                onClick={() => setFilter(id)}
+                onClick={() => setFilter(id as RosterView)}
               >
                 {title}
               </button>
@@ -435,102 +393,168 @@ export function LeaderAttendance({
                     )}
                   </p>
                 )}
+                {requestView && (
+                  <div className="roster-view-heading">
+                    <h3>{rosterViews[filter]}</h3>
+                    <p>كل الطلبات هنا مقبولة تلقائيًا، وبتخص الفعالية دي بس.</p>
+                  </div>
+                )}
                 <div className="roster-results" aria-live="polite">
                   {t("النتائج: ", "Results: ")}
                   {list.length}
+                  <span>، التنزيل بيشمل النتائج دي بس.</span>
                 </div>
                 {list.length ? (
-                  list.map((r) => (
-                    <article
-                      className="leader-person"
-                      key={r.profiles.student_code}
+                  requestView ? (
+                    <div
+                      className="request-table-scroll"
+                      role="region"
+                      aria-label={rosterViews[filter]}
+                      tabIndex={0}
                     >
-                      <div className="leader-person-top">
-                        <div>
-                          <h4>
-                            {r.profiles.full_name ||
-                              "كود الطالب " + r.profiles.student_code}
-                          </h4>
-                          <div className="leader-person-contact">
-                            <span dir="ltr">{r.profiles.student_code}</span>
-                            {r.profiles.phone && (
-                              <a dir="ltr" href={"tel:" + r.profiles.phone}>
-                                {r.profiles.phone}
-                              </a>
-                            )}
+                      <table className="request-table">
+                        <caption className="sr-only">
+                          {event.title}، {rosterViews[filter]}
+                        </caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">الطالب</th>
+                            <th scope="col">
+                              {filter === "accommodations"
+                                ? "التسهيلات المطلوبة"
+                                : "العذر الأكاديمي المطلوب"}
+                            </th>
+                            <th scope="col">حالة الطلب</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {list.map((r) => (
+                            <tr key={r.profiles.student_code}>
+                              <th scope="row">
+                                <span className="request-student-name">
+                                  {r.profiles.full_name ||
+                                    "كود الطالب " + r.profiles.student_code}
+                                </span>
+                                <span dir="ltr">{r.profiles.student_code}</span>
+                                {r.profiles.phone && (
+                                  <a dir="ltr" href={"tel:" + r.profiles.phone}>
+                                    {r.profiles.phone}
+                                  </a>
+                                )}
+                              </th>
+                              <td className="request-detail">
+                                {filter === "accommodations"
+                                  ? r.accommodation
+                                  : r.excuse}
+                              </td>
+                              <td>
+                                <span className="status-label status-confirmed">
+                                  مقبول تلقائيًا
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    list.map((r) => (
+                      <article
+                        className="leader-person"
+                        key={r.profiles.student_code}
+                      >
+                        <div className="leader-person-top">
+                          <div>
+                            <h4>
+                              {r.profiles.full_name ||
+                                "كود الطالب " + r.profiles.student_code}
+                            </h4>
+                            <div className="leader-person-contact">
+                              <span dir="ltr">{r.profiles.student_code}</span>
+                              {r.profiles.phone && (
+                                <a dir="ltr" href={"tel:" + r.profiles.phone}>
+                                  {r.profiles.phone}
+                                </a>
+                              )}
+                            </div>
                           </div>
+                          {r.pending_account ? (
+                            <span className="status-label status-confirmed">
+                              {r.points} نقطة محفوظة
+                            </span>
+                          ) : r.present ? (
+                            <span className="status-label status-confirmed">
+                              <Check size={14} />
+                              {t("حاضر", "Present")}
+                            </span>
+                          ) : r.going !== false ? (
+                            <button
+                              className="primary"
+                              disabled={
+                                adding ||
+                                pending.has(r.user_id || "") ||
+                                !attendanceOpen
+                              }
+                              onClick={() => checkIn(r)}
+                              aria-label={
+                                t("تسجيل حضور ", "Check in ") +
+                                r.profiles.full_name
+                              }
+                            >
+                              {pending.has(r.user_id || "") ? (
+                                <LoaderCircle size={16} className="spin" />
+                              ) : (
+                                <Check size={16} />
+                              )}{" "}
+                              {t("تسجيل الحضور", "Check in")}
+                            </button>
+                          ) : (
+                            <span className="status-label status-neutral">
+                              {t("ألغى المشاركة", "Cancelled")}
+                            </span>
+                          )}
                         </div>
-                        {r.pending_account ? (
-                          <span className="status-label status-confirmed">
-                            {r.points} نقطة محفوظة
-                          </span>
-                        ) : r.present ? (
-                          <span className="status-label status-confirmed">
-                            <Check size={14} />
-                            {t("حاضر", "Present")}
-                          </span>
-                        ) : r.going !== false ? (
-                          <button
-                            className="primary"
-                            disabled={
-                              adding || pending.has(r.user_id || "") || !attendanceOpen
-                            }
-                            onClick={() => checkIn(r)}
-                            aria-label={
-                              t("تسجيل حضور ", "Check in ") +
-                              r.profiles.full_name
-                            }
-                          >
-                            {pending.has(r.user_id || "") ? (
-                              <LoaderCircle size={16} className="spin" />
-                            ) : (
-                              <Check size={16} />
-                            )}{" "}
-                            {t("تسجيل الحضور", "Check in")}
-                          </button>
-                        ) : (
-                          <span className="status-label status-neutral">
-                            {t("ألغى المشاركة", "Cancelled")}
-                          </span>
+                        {r.pending_account && (
+                          <p className="leader-help">
+                            لم يُنشئ حسابه بعد، ستُربط النقاط تلقائيًا عند
+                            التسجيل بهذا الكود.
+                          </p>
                         )}
-                      </div>
-                      {r.pending_account && (
-                        <p className="leader-help">
-                          لم يُنشئ حسابه بعد، ستُربط النقاط تلقائيًا عند التسجيل
-                          بهذا الكود.
-                        </p>
-                      )}
-                      {r.registered_before === false && (
-                        <span className="leader-help">بدون تسجيل مسبق</span>
-                      )}
-                      {(r.excuse || r.accommodation) && (
-                        <div className="leader-person-requests">
-                          <span className="status-label status-confirmed">
-                            {t("الطلبات مقبولة", "Requests accepted")}
-                          </span>
-                          <details>
-                            <summary>
-                              {t("عرض الطلبات", "View requests")}
-                            </summary>
-                            {r.excuse && (
-                              <p>
-                                <b>
-                                  {t("العذر الأكاديمي: ", "Academic excuse: ")}
-                                </b>
-                                {r.excuse}
-                              </p>
-                            )}
-                            {r.accommodation && (
-                              <p>
-                                <b>{t("التسهيلات: ", "Accommodation: ")}</b>
-                                {r.accommodation}
-                              </p>
-                            )}
-                          </details>
-                        </div>
-                      )}
-                    </article>
-                  ))
+                        {r.registered_before === false && (
+                          <span className="leader-help">بدون تسجيل مسبق</span>
+                        )}
+                        {(r.excuse || r.accommodation) && (
+                          <div className="leader-person-requests">
+                            <span className="status-label status-confirmed">
+                              {t("الطلبات مقبولة", "Requests accepted")}
+                            </span>
+                            <details>
+                              <summary>
+                                {t("عرض الطلبات", "View requests")}
+                              </summary>
+                              {r.excuse && (
+                                <p>
+                                  <b>
+                                    {t(
+                                      "العذر الأكاديمي: ",
+                                      "Academic excuse: ",
+                                    )}
+                                  </b>
+                                  {r.excuse}
+                                </p>
+                              )}
+                              {r.accommodation && (
+                                <p>
+                                  <b>{t("التسهيلات: ", "Accommodation: ")}</b>
+                                  {r.accommodation}
+                                </p>
+                              )}
+                            </details>
+                          </div>
+                        )}
+                      </article>
+                    ))
+                  )
                 ) : (
                   <div className="leader-empty">
                     <h3>

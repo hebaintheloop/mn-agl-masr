@@ -1,5 +1,6 @@
 import {chromium} from '@playwright/test';
 import assert from 'node:assert/strict';
+import ExcelJS from 'exceljs';
 const base=process.env.UI_TEST_BASE_URL||'http://localhost:3500';
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox'],proxy:base.startsWith('https:')&&process.env.HTTPS_PROXY?{server:process.env.HTTPS_PROXY}:undefined});
 const context=await browser.newContext({ignoreHTTPSErrors:true,viewport:{width:1440,height:1000},timezoneId:'America/Los_Angeles',acceptDownloads:true});
@@ -36,8 +37,8 @@ await p.getByRole('button',{name:'الكل',exact:true}).click();
 await p.getByRole('textbox',{name:'ابحث عن مشارك',exact:true}).fill('٢٥٢٧٠٠١');assert.equal(await p.locator('.leader-person').count(),1);
 await p.getByRole('button',{name:'مسح البحث',exact:true}).click();
 await p.getByRole('button',{name:'أعذار وتسهيلات',exact:true}).click();await p.getByText('عرض الطلبات',{exact:true}).click();await p.getByText('تعارض سكشن الكيمياء',{exact:false}).waitFor();
-const downloadPromise=p.waitForEvent('download');await p.getByRole('button',{name:'تصدير النتائج',exact:true}).click();const download=await downloadPromise;
-const stream=await download.createReadStream();let csv='';for await(const chunk of stream)csv+=chunk;assert(csv.includes('مريم أحمد'));assert(!csv.includes('أحمد محمود'));assert(!csv.includes('طالب ألغى'));
+const downloadPromise=p.waitForEvent('download');await p.getByRole('button',{name:'تنزيل Excel',exact:true}).click();const download=await downloadPromise;
+const stream=await download.createReadStream();const chunks=[];for await(const chunk of stream)chunks.push(chunk);const workbook=new ExcelJS.Workbook();await workbook.xlsx.load(Buffer.concat(chunks));const data=JSON.stringify(workbook.worksheets[0].getSheetValues());assert(data.includes('مريم أحمد'));assert(!data.includes('أحمد محمود'));assert(!data.includes('طالب ألغى'));
 await p.getByRole('button',{name:'ألغوا المشاركة',exact:true}).click();assert.equal(await p.locator('.leader-person').count(),1);assert.equal(await p.locator('.leader-person button.primary').count(),0);
 await p.screenshot({path:'/workspace/work/leader-roster-desktop.png',fullPage:true});
 await p.getByRole('button',{name:'العودة للإدارة',exact:true}).click();await p.getByRole('button',{name:'إدارة الحضور',exact:true}).last().click();await p.getByRole('heading',{name:'لم يسجل أحد بعد',exact:true}).waitFor();assert.equal(await p.getByText('أحمد محمود',{exact:true}).count(),0,'A new event must not retain the previous roster');

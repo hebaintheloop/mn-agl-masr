@@ -1,0 +1,13 @@
+# Homepage photos and leader request reports
+
+The three user-supplied Facebook photographs are saved unchanged as `public/assets/homepage-{1,2,3}.jpg`. They replace the illustrative defaults in the existing animated photo stacks. Explicit gallery settings still take precedence. Production homepage settings had no saved gallery at implementation time. Facebook URLs are not used at runtime. Photos remain editable through the existing homepage media controls.
+
+Each event's participant manager has separate **التسهيلات** and **الأعذار الأكاديمية** views, with counts. These show full request text alongside the student's name, code and phone. Both requests can belong to the same student. Cancelled non-attendees are excluded from active request views and remain in the cancellation view. Requests continue to be accepted automatically and are scoped to their event.
+
+Every participant view (all, waiting, present, accommodations, excuses, combined requests and cancelled) can download genuine `.xlsx` and `.pdf` files. The current view and search results are captured when the download begins. Empty results disable both buttons. Reports include the event, Cairo dates, selected view and row count. Request-specific reports include only the relevant request column.
+
+Excel uses a right-to-left sheet, frozen table headers, auto-filtering, wrapped text and red headers. Student codes and phone numbers are string cells; leading zeros are retained and formula-like student input is not evaluated. PDF uses landscape A4, an embedded Amiri Arabic font (OFL license in `public/licenses/Amiri.txt`), repeated headings, wrapped table cells and page numbers. Arabic bidi handling is explicit, with codes and phone numbers left-to-right. Both libraries and the PDF font load only on demand. Reports are generated locally in the leader's browser from the existing leader-only roster API. No new public data endpoint or database change was needed.
+
+Verification: production-mode Next build and TypeScript, 30 unit tests including XLSX round-trip and multi-page PDF generation, actual PDF rasterization for Arabic layout, all seven view exports in browser fixtures, request separation/search/cancellation handling, student UI isolation, 375/390px and dark mode, plus existing attendance, leader UX and animation regression checks. Production dependencies audited with zero reported vulnerabilities. ExcelJS's compatible UUID dependency is pinned to 11.1.1 through an override.
+
+Browser tests use intercepted roster fixtures; no production students, requests or attendance are created. Test PDF samples contain fixture data only.

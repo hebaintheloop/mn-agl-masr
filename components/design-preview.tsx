@@ -176,7 +176,7 @@ export function CommunityExperience({
   );
   const img = (i: number) =>
     home.gallery_urls?.[i] ||
-    ["/assets/community.jpg", "/assets/campus.jpg", "/assets/workshop.jpg"][i];
+    ["/assets/homepage-1.jpg", "/assets/homepage-2.jpg", "/assets/homepage-3.jpg"][i];
   const title = (e: EventItem) =>
     en && e.id.startsWith("preview-")
       ? exampleTitles[examples.findIndex((x) => x.id === e.id)]
@@ -350,8 +350,8 @@ export function CommunityExperience({
                       img((slot + layer) % 3),
                   )}
                   label={t(
-                    "صور من مجتمعنا، الصور الحالية توضيحية ما لم تُضف صور الفعاليات",
-                    "Community photographs, illustrative until event photos are added",
+                    "صور من فعاليات طلاب من أجل مصر، جامعة القاهرة",
+                    "Mn Agl Masr student activities at Cairo University",
                   )}
                   videoUrl={slot === 1 ? home.video_url : undefined}
                   posterUrl={slot === 1 ? home.poster_url : undefined}
