@@ -684,9 +684,6 @@ label small {
   margin-inline-start: auto;
   color: var(--muted);
 }
-.news-form {
-  margin-top: 35px;
-}
 .scanner {
   margin-top: 30px;
 }

@@ -392,23 +392,7 @@
   margin: -12px;
   object-fit: cover;
 }
-.dp-news {
-  max-width: 910px;
-  margin: 0 auto 110px;
-  padding: 0 30px;
-}
-.dp-news article {
-  margin-top: 20px;
-}
-.dp-news h3 {
-  font-size: 25px;
-  font-weight: 500;
-}
-.dp-news p {
-  font-size: 14px;
-  margin-top: 10px;
-  color: var(--dp-muted);
-}
+
 .dp-last-word {
   padding: 0 30px 100px;
   text-align: center;
@@ -848,10 +832,7 @@ html[lang="en"] .dp-last-word h2 {
     width: calc(100% + 18px);
     height: calc(100% + 18px);
   }
-  .dp-news {
-    margin-bottom: 65px;
-    padding-inline: 25px;
-  }
+
   .dp-last-word {
     padding: 0 20px 70px;
   }
@@ -1110,71 +1091,10 @@ html[lang="ar"] .dp h3 {
   border-inline-start: 0 !important;
   padding-inline-start: 0 !important;
 }
-.dp-news {
-  max-width: 1120px;
-  margin: 90px auto;
-  padding: 0 30px;
-}
-.dp-news > .dp-section-heading {
-  margin-bottom: 32px;
-}
-.dp-news h2 {
-  font-size: 44px;
-  font-weight: 500;
-  letter-spacing: normal;
-}
-.dp-news-list {
-  display: grid;
-  gap: 28px;
-}
-.dp-news-list > article {
-  border: 0 !important;
-  padding: 0 !important;
-}
-.dp-news-list > article + article {
-  margin-top: 10px;
-}
-.dp-news-list time {
-  display: block;
-  font-size: 13px;
-  color: var(--dp-muted);
-  margin-bottom: 10px;
-}
-.dp-news-list h3 {
-  font-size: 26px;
-  line-height: 1.6;
-  margin-bottom: 12px;
-}
-.dp-news-list p {
-  font-size: 17px;
-  line-height: 2;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-.dp-news .dp-empty {
-  padding: 24px 0;
-  text-align: start;
-  border: 0;
-  background: none;
-}
+
 .dp-poster > .event-artwork {
   width: 100%;
   height: 100%;
-}
-@media (max-width: 700px) {
-  .dp-news {
-    padding: 0 22px;
-    margin: 65px auto;
-  }
-  .dp-news h2 {
-    font-size: 32px;
-  }
-  .dp-news-list h3 {
-    font-size: 22px;
-  }
-  .dp-news-list p {
-    font-size: 16px;
-  }
 }
 
 /* A short, unboxed guide follows the introduction to the student activity. */

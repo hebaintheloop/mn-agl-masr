@@ -8,7 +8,7 @@ const p=await context.newPage();const errors=[];p.on('pageerror',e=>errors.push(
 const event={id:'leader-ui-current',title:'ملتقى طلاب العلوم',description:'تفاصيل الفعالية',location:'كلية العلوم، جامعة القاهرة',start_at:new Date(Date.now()-600000).toISOString(),end_at:new Date(Date.now()+3600000).toISOString(),points:20,cover_url:null,dress_code:'ملابس رسمية'};
 const second={...event,id:'leader-ui-second',title:'ورشة التنظيم',dress_code:'',start_at:new Date(Date.now()+86400000).toISOString(),end_at:new Date(Date.now()+90000000).toISOString()};
 const user={profile:{id:'leader-fixture',full_name:'قائد للمعاينة',student_code:'0000000',phone:'00000000000',role:'leader'},points:[],registrations:[]};
-let calls=0,failManual=true,failNews=true,created=null;
+let calls=0,failManual=true,created=null;
 const row=(id,name,code,going=true)=>({user_id:id,going,excuse:id==='two'?'تعارض سكشن الكيمياء':'',accommodation:'',profiles:{full_name:name,student_code:code,phone:'01012345678'}});
 await p.route('**/api/action*',async route=>{
  const req=route.request();if(req.method()==='GET')return route.fulfill({json:{events:[event,second],home:{},news:[]}});
@@ -18,7 +18,6 @@ await p.route('**/api/action*',async route=>{
  if(b.action==='me')return route.fulfill({json:user});
  if(b.action==='attendees')return route.fulfill({json:{rows:b.event_id===event.id?[row('one','أحمد محمود','2527001'),row('two','مريم أحمد','2527002'),row('three','طالب ألغى','2527003',false)]:[],attendance:[{user_id:'two'}]}});
  if(b.action==='manual'){calls++;if(failManual){failManual=false;return route.fulfill({status:503,json:{error:'تعذّر الاتصال، حاول مجددًا'}})}return route.fulfill({json:{saved:true}})}
- if(b.action==='news'){if(failNews){failNews=false;return route.fulfill({status:503,json:{error:'تعذّر النشر'}})}return route.fulfill({json:{saved:true}})}
  if(b.action==='create-event'){created=b;return route.fulfill({json:{id:'created-ui-event',code:'MAM1.created-ui-event.fixture-only'}})}
  return route.fulfill({status:400,json:{error:'Fixture: operation not implemented'}});
 });
@@ -43,9 +42,8 @@ await p.getByRole('button',{name:'ألغوا المشاركة',exact:true}).clic
 await p.screenshot({path:'/workspace/work/leader-roster-desktop.png',fullPage:true});
 await p.getByRole('button',{name:'العودة للإدارة',exact:true}).click();await p.getByRole('button',{name:'إدارة الحضور',exact:true}).last().click();await p.getByRole('heading',{name:'لم يسجل أحد بعد',exact:true}).waitFor();assert.equal(await p.getByText('أحمد محمود',{exact:true}).count(),0,'A new event must not retain the previous roster');
 await p.getByRole('button',{name:'العودة للإدارة',exact:true}).click();
-await p.getByRole('tab',{name:'الأخبار',exact:true}).click();await p.getByLabel('عنوان الخبر',{exact:true}).fill('عنوان محفوظ كمسودة');await p.getByLabel('التفاصيل',{exact:true}).fill('خبر تجريبي للواجهة فقط');
-await p.getByRole('button',{name:'نشر الخبر',exact:true}).click();await p.getByRole('alert').filter({hasText:'تعذّر النشر'}).waitFor();assert.equal(await p.getByLabel('عنوان الخبر',{exact:true}).inputValue(),'عنوان محفوظ كمسودة');
-await p.getByRole('tab',{name:'الصفحة الرئيسية',exact:true}).click();await p.getByRole('tab',{name:'الأخبار',exact:true}).click();assert.equal(await p.getByLabel('عنوان الخبر',{exact:true}).inputValue(),'عنوان محفوظ كمسودة');
+assert.equal(await p.getByRole('tab',{name:'الأخبار',exact:true}).count(),0);
+const eventsTab=p.getByRole('tab',{name:'الفعاليات',exact:true}),homeTab=p.getByRole('tab',{name:'الصفحة الرئيسية',exact:true});await eventsTab.focus();await eventsTab.press('ArrowLeft');assert.equal(await homeTab.getAttribute('aria-selected'),'true');await homeTab.press('ArrowRight');assert.equal(await eventsTab.getAttribute('aria-selected'),'true');await eventsTab.press('End');assert.equal(await homeTab.getAttribute('aria-selected'),'true');await homeTab.press('Home');assert.equal(await eventsTab.getAttribute('aria-selected'),'true');
 await p.getByRole('button',{name:'إنشاء فعالية',exact:true}).click();const dialog=p.getByRole('dialog',{name:'إنشاء فعالية'});await dialog.getByLabel('العنوان',{exact:true}).fill('حدث تجربة الواجهة');await p.keyboard.press('Escape');
 await p.getByRole('button',{name:'إنشاء فعالية',exact:true}).click();assert.equal(await dialog.getByLabel('العنوان',{exact:true}).inputValue(),'حدث تجربة الواجهة');
 await dialog.getByLabel('الوصف ونقطة التجمع',{exact:true}).fill('تفاصيل للمعاينة فقط');await dialog.getByLabel('المكان',{exact:true}).fill('كلية العلوم');await dialog.getByLabel('الزي المطلوب (اختياري)',{exact:true}).fill('ملابس رسمية');await dialog.getByLabel('البداية',{exact:true}).fill('2026-12-05T10:00');await dialog.getByLabel('النهاية',{exact:true}).fill('2026-12-05T09:00');
@@ -70,5 +68,5 @@ await studentPage.getByRole('heading',{name:'ورشة التنظيم',exact:true
 assert.equal(await studentPage.getByText('الزي المطلوب',{exact:true}).count(),0);
 await studentContext.close();
 assert.deepEqual(errors,[]);
-console.log('PASS leader dashboard, event isolation, search, filtered export, cancellation, failed check-in retry, news drafts, creation drafts, Cairo schedule, QR, 375-1024px, dark/Arabic-only');
+console.log('PASS leader dashboard, event isolation, search, filtered export, cancellation, failed check-in retry, creation drafts, Cairo schedule, QR, 375-1024px, dark/Arabic-only');
 await browser.close();

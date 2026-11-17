@@ -11,7 +11,7 @@ if(!setting||await digest(req.headers.get('X-App-Key')||'')!==setting.value)retu
 const b=await req.json();const a=b.action;if(a==='manual-code')b.student_code=normalizeStudentCode(b.student_code);const aliasCode=b.student_code;if(typeof b.student_code==='string'){if(!/^(?:\d{7}|\d{2}-\d{2}-\d{3})$/.test(b.student_code))throw new Error('Invalid student code');b.student_code=b.student_code.replaceAll('-','');}
 if(a==='rate')return Response.json({allowed:checked(await db.rpc('take_rate_limit',{p_key:b.key,p_limit:b.limit,p_seconds:b.seconds}))});
 if(a==='leaderboard')return Response.json({rows:checked(await db.rpc('leaderboard')).map((row:any)=>({full_name:row.full_name,points:row.points}))});
-if(a==='public'){const [events,news]=await Promise.all([db.from('events').select('id,title,description,location,start_at,end_at,points,cover_url,dress_code').lt('end_at',new Date().toISOString()).order('start_at',{ascending:false}).limit(100),db.from('news').select('*').order('created_at',{ascending:false}).limit(10)]);const {data:home}=await db.from('app_settings').select('value').eq('key','home').maybeSingle();return Response.json({events:await eventImages(db,checked(events),Deno.env.get('SUPABASE_URL')!),news:checked(news),home:home?JSON.parse(home.value):{}});}
+if(a==='public'){const events=await db.from('events').select('id,title,description,location,start_at,end_at,points,cover_url,dress_code').lt('end_at',new Date().toISOString()).order('start_at',{ascending:false}).limit(100);const {data:home}=await db.from('app_settings').select('value').eq('key','home').maybeSingle();return Response.json({events:await eventImages(db,checked(events),Deno.env.get('SUPABASE_URL')!),home:home?JSON.parse(home.value):{}});}
 if(a==='signup'){
 if(!/^\d{7}$/.test(b.student_code)||typeof b.password!=='string'||b.password.length<12||typeof b.ciphertext!=='string')throw new Error('Invalid registration');
 const {data,error}=await db.auth.admin.createUser({email:aliasCode+'@members.mnagl.invalid',password:b.password,email_confirm:true});if(error)throw new Error('Unable to create account. This student code may already be registered.');
@@ -45,6 +45,5 @@ if(a==='attendees')return Response.json(checked(await db.rpc('leader_event_roste
 if(a==='manual-code')return Response.json(checked(await db.rpc('record_attendance_by_code',{p_event:b.event_id,p_code:normalizeStudentCode(b.student_code),p_actor:user.id})));
 if(a==='manual'){const target=checked(await db.from('profiles').select('student_code').eq('id',b.user_id).single());return Response.json(checked(await db.rpc('record_attendance_by_code',{p_event:b.event_id,p_code:target.student_code,p_actor:user.id})));}
 if(a==='home'){checked(await db.from('app_settings').upsert({key:'home',value:JSON.stringify(b.home)}));return Response.json({saved:true});}
-if(a==='news'){checked(await db.from('news').insert({title:b.title,body:b.body}));return Response.json({saved:true});}
 throw new Error('Unknown action');
 }catch(e){return Response.json({error:e instanceof Error?e.message:'Request failed'},{status:400});}});

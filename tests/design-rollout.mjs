@@ -128,7 +128,7 @@ for (const role of ["student", "leader"]) {
   });
   await page.goto(base);
   await page
-    .getByRole("heading", { name: "من أجل مصر", exact: false })
+    .getByRole("heading", { name: "من أجل مصر", exact: false, level: 1 })
     .waitFor();
   assert.equal(await page.locator(".dp-drawn-arrow").count(), 0);
   assert.equal(await page.locator(".dp-preview-note").count(), 0);
@@ -266,7 +266,8 @@ await page.route("**/api/action*", (route) =>
   ),
 );
 await page.goto(base);
-await page.getByTestId("empty-news").waitFor();
+await page.getByRole("heading", { name: "من أجل مصر متاحة للكل", exact: true }).waitFor();
+assert.equal(await page.locator(".dp-news").count(), 0);
 assert.equal(
   await page.getByText("يوم العلوم المفتوح", { exact: true }).count(),
   0,

@@ -46,9 +46,7 @@ export function LeaderWorkspace({
     [copyError, setCopyError] = useState("");
   const [pending, setPending] = useState(""),
     [error, setError] = useState(""),
-    [notice, setNotice] = useState(""),
-    [title, setTitle] = useState(""),
-    [body, setBody] = useState("");
+    [notice, setNotice] = useState("");
   const [media, setMedia] = useState({
       video_url: home.video_url || "",
       poster_url: home.poster_url || "",
@@ -146,10 +144,6 @@ export function LeaderWorkspace({
     setNotice("");
     try {
       await api(action, data);
-      if (action === "news") {
-        setTitle("");
-        setBody("");
-      }
 
       setNotice(t("اتحفظت", "Saved"));
       try {
@@ -193,7 +187,6 @@ export function LeaderWorkspace({
       >
         {[
           ["events", t("الفعاليات", "Events")],
-          ["news", t("الأخبار", "News")],
           ["home", t("الصفحة الرئيسية", "Homepage")],
         ].map(([id, label]) => (
           <button
@@ -212,7 +205,7 @@ export function LeaderWorkspace({
             onKeyDown={(e) => {
               if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) {
                 e.preventDefault();
-                const tabs = ["events", "news", "home"];
+                const tabs = ["events", "home"];
                 const next =
                   e.key === "Home"
                     ? "events"
@@ -222,8 +215,9 @@ export function LeaderWorkspace({
                           (tabs.indexOf(tab) +
                             (e.key === (en ? "ArrowRight" : "ArrowLeft")
                               ? 1
-                              : 2)) %
-                            3
+                              : -1) +
+                            tabs.length) %
+                            tabs.length
                         ];
                 setTab(next);
                 setError("");
@@ -397,49 +391,6 @@ export function LeaderWorkspace({
             </div>
           )}
         </div>
-      </div>
-      <div
-        role="tabpanel"
-        id="leader-page-news"
-        aria-labelledby="leader-tab-news"
-        hidden={tab !== "news"}
-      >
-        <form
-          className="leader-editor"
-          onSubmit={(e) => {
-            e.preventDefault();
-            submit("news", { title, body });
-          }}
-        >
-          <h2>{t("نشر خبر", "Publish news")}</h2>
-          <label>
-            {t("عنوان الخبر", "Title")}
-            <input
-              name="title"
-              required
-              minLength={2}
-              maxLength={200}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </label>
-          <label>
-            {t("التفاصيل", "Details")}
-            <textarea
-              name="body"
-              required
-              minLength={2}
-              maxLength={5000}
-              rows={6}
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-            />
-          </label>
-          <button className="primary" disabled={!!pending}>
-            {pending === "news" && <LoaderCircle size={16} className="spin" />}
-            {t("نشر الخبر", "Publish news")}
-          </button>
-        </form>
       </div>
       <div
         role="tabpanel"

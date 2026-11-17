@@ -72,11 +72,7 @@ type CommunityProps = {
   content?: {
     events: EventItem[];
     home: { video_url?: string; poster_url?: string; gallery_urls?: string[] };
-    news: { id: string; title: string; body: string; created_at?: string }[];
   };
-  loading?: boolean;
-  loadError?: boolean;
-  onRetry?: () => void;
   onNavigate?: (view: string) => void;
   onEvent?: (event: EventItem) => void;
   onJoin?: () => void;
@@ -88,9 +84,6 @@ export function CommunityExperience({
   embedded = false,
   live = false,
   content,
-  loading = false,
-  loadError = false,
-  onRetry,
   onNavigate,
   onEvent,
   onJoin,
@@ -105,16 +98,12 @@ export function CommunityExperience({
       video_url?: string;
       poster_url?: string;
       gallery_urls?: string[];
-    }>({}),
-    [fetchedNews, setNews] = useState<
-      { title: string; body: string; id: string; created_at?: string }[]
-    >([]);
+    }>({});
   const motionRoot = useRef<HTMLDivElement>(null);
   useHissReveals(motionRoot, tab);
   const en = false;
   const events = content?.events ?? fetchedEvents;
   const home = content?.home ?? fetchedHome;
-  const news = content?.news ?? fetchedNews;
   const ContentTag = embedded ? "section" : "main";
   function join(event: React.MouseEvent<HTMLAnchorElement>) {
     if (onJoin) {
@@ -133,7 +122,6 @@ export function CommunityExperience({
       .then((d) => {
         setEvents(d.events || []);
         setHome(d.home || {});
-        setNews(d.news || []);
       })
       .catch(() => {});
   }, [embedded]);
@@ -381,46 +369,6 @@ export function CommunityExperience({
               </button>
             </div>
           </section>
-          <section className="dp-news" aria-labelledby="news-heading">
-            <div className="dp-section-heading" data-hiss-reveal>
-              <h2 id="news-heading">آخر أخبارنا</h2>
-            </div>
-            {loading ? (
-              <p role="status" className="dp-loading">
-                بنحمّل الأخبار…
-              </p>
-            ) : loadError ? (
-              <div className="dp-empty" role="alert">
-                <h3>الأخبار مش ظاهرة دلوقتي</h3>
-                <button className="dp-inline-link" onClick={onRetry}>
-                  جرّب تاني
-                </button>
-              </div>
-            ) : news.length ? (
-              <div className="dp-news-list">
-                {news.map((n) => (
-                  <article key={n.id}>
-                    {n.created_at && (
-                      <time dateTime={n.created_at}>
-                        {new Date(n.created_at).toLocaleDateString("ar-EG", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                          timeZone: "Africa/Cairo",
-                        })}
-                      </time>
-                    )}
-                    <h3>{n.title}</h3>
-                    <p>{n.body}</p>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className="dp-empty" data-testid="empty-news">
-                <p>لسه مفيش أخبار منشورة.</p>
-              </div>
-            )}
-          </section>
           <section className="dp-about" data-hiss-reveal>
             <div>
               <h2>
@@ -432,7 +380,7 @@ export function CommunityExperience({
             <div>
               <p>
                 {t(
-                  "إحنا طلاب من أجل مصر في كلية العلوم، جامعة القاهرة. بنجهّز فعاليات وورش، وبنشارك في أنشطة الكلية والتطوّع. هنا هتلاقي أخبارنا وتفاصيل كل فعالية وطريقة التسجيل فيها.",
+                  "إحنا طلاب من أجل مصر في كلية العلوم، جامعة القاهرة. بنجهّز فعاليات وورش، وبنشارك في أنشطة الكلية والتطوّع. هنا هتلاقي تفاصيل كل فعالية وطريقة التسجيل فيها.",
                   "We are Mn Agl Masr students at the Faculty of Science, Cairo University. Through events, training and volunteering, we develop our skills, broaden our awareness and contribute to our community.",
                 )}
               </p>

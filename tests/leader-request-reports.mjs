@@ -99,7 +99,7 @@ await p.route("**/api/action*", async (route) => {
   });
 });
 await p.goto(base);
-await p.getByRole("heading", { name: "آخر أخبارنا", exact: true }).waitFor();
+await p.getByRole("heading", { name: "من أجل مصر متاحة للكل", exact: true }).waitFor();
 await p.waitForFunction(
   () =>
     [...document.querySelectorAll(".hiss-image-layer img")].length === 9 &&

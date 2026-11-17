@@ -98,9 +98,6 @@ export default function App() {
     [me, setMe] = useState<Me | null>(null),
     [authChecked, setAuthChecked] = useState(false),
     [events, setEvents] = useState<EventItem[]>([]),
-    [news, setNews] = useState<
-      { id: string; title: string; body: string; created_at: string }[]
-    >([]),
     [selected, setSelected] = useState<EventItem | null>(null),
     [notice, setNotice] = useState(""),
     [error, setError] = useState(""),
@@ -143,7 +140,6 @@ export default function App() {
       );
     if (request !== dataRequest.current) return nextEvents;
     setEvents(nextEvents);
-    setNews(d.news || []);
     setHome(d.home || {});
     setLoadFailed(false);
     if (!initialized.current) {
@@ -515,10 +511,7 @@ export default function App() {
           <CommunityExperience
             embedded
             live
-            content={{ home, events, news }}
-            loading={!initialized.current && !loadFailed}
-            loadError={loadFailed}
-            onRetry={() => refresh(true).catch(() => setLoadFailed(true))}
+            content={{ home, events }}
             onNavigate={go}
             onEvent={openEvent}
             onJoin={() => (me ? go("events") : setAuth("signup"))}

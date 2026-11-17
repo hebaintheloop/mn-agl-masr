@@ -38,7 +38,6 @@ export async function POST(req: NextRequest) {
       "manual",
       "manual-code",
       "event-stats",
-      "news",
       "home",
       "events",
       "event",
@@ -103,11 +102,6 @@ export async function POST(req: NextRequest) {
       if (new Date(ev.end_at) <= new Date(ev.start_at))
         throw new Error("End time must be after start time");
     }
-    if (b.action === "news")
-      z.object({
-        title: z.string().trim().min(2).max(200),
-        body: z.string().trim().min(2).max(5000),
-      }).parse(b);
     if (b.action === "home") {
       b.home = z
         .object({
