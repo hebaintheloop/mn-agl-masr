@@ -25,3 +25,7 @@ The owner clarified that accommodations mean medical/health/disability accommoda
 Build/TypeScript and the landing browser check passed at 375/390/768/1365px in both themes. A read-only intercepted student fixture verified the updated RSVP label, optional input, diagnosis guidance and mobile layout without saving any production medical information. No backend/schema changes.
 
 Medical clarification production verification: source commit `9049f62` deployed READY as `dpl_6FGppJBMahTphpuvs7Fo6LpPu4sb` on 17 November 2026, Cairo. Both the real landing-page browser check and intercepted read-only medical RSVP form check passed against the production frontend. Initial error/fatal runtime logs returned no records. No production requests or medical details were saved during testing.
+
+## Five-step guide
+
+The guide now has five steps: create an account, choose an event, request medical accommodations, request an academic excuse for an overlapping class, then scan attendance. Both request types remain optional and automatically accepted per event. The accommodations link still targets `/#how-to-use-requests`; academic excuses have their own `/#how-to-use-excuses` target. Signup/points logic is unchanged.

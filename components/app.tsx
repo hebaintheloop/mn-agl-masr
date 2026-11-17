@@ -19,6 +19,7 @@ import {
   Shirt,
 } from "lucide-react";
 import { uiError } from "@/lib/ui-error";
+import { PwaInstall } from "./pwa-install";
 import { ImageUpload, ImagePreview } from "./image-upload";
 import { EventArtwork } from "./event-artwork";
 import { PasswordField } from "./password-field";
@@ -1148,6 +1149,7 @@ export default function App() {
             )}
           </small>
         </div>
+        <PwaInstall />
         <span>© {new Date().getFullYear()}</span>
       </footer>
       {auth && (

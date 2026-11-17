@@ -1,0 +1,11 @@
+# Phone installation
+
+The site is an installable PWA with an Arabic RTL manifest, canonical app identity/start URL/scope, standalone display, red theme color, and 192/512px icons plus a dedicated maskable icon and 180px Apple touch icon. Icons are deterministic exports of the existing official logo. Apple title/status-bar metadata and a mobile viewport are included. No push-notification service or paid dependency was added.
+
+The public footer's **تثبيت التطبيق** button invokes the native browser install prompt when available, otherwise opens an accessible native dialog with Android/Chrome and iPhone/Safari instructions. It explains opening an embedded Facebook/Instagram link in the device browser first. The control hides in standalone mode or after installation. The instructions support keyboard dismissal and existing light/dark styles.
+
+The service worker caches only the generic offline HTML and two public logo icons. API requests, mutations, app HTML, RSC responses and private account/event/medical data are never cached by it. Navigations use the network and fall back to the generic offline page only on a network failure. There is no background sync or queue, and no offline attendance success. The offline page asks students to reconnect and verify/retry attendance. Worker updates have no-cache headers, clean only the app's versioned static cache, and do not force a page reload during an active form/scan.
+
+Verification: Next build and TypeScript; manifest parsing, icon PNG dimensions, Apple metadata, service-worker headers/control, browser installability in a persistent non-incognito Chromium profile, Android/iPhone instructions, keyboard/theme/mobile behavior, simulated native prompt/installed state, exact public cache contents, failed offline API writes, private-route offline fallback, and successful reconnect. These are automated browser checks, not a physical iPhone/Android installation. Actual iPhone installation uses Safari's Share → Add to Home Screen flow.
+
+The how-to section now has five steps, keeping medical accommodation requests separate from academic excuses. Its existing accommodation anchor is preserved. The 375/390/768/1365px light/dark landing checks passed with five guide items.

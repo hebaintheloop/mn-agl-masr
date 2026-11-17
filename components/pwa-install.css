@@ -1,0 +1,65 @@
+.pwa-install-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 10px;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 12px;
+}
+.pwa-install-button:hover {
+  color: var(--brand);
+}
+.pwa-install-dialog {
+  width: min(460px, calc(100% - 32px));
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  padding: 30px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+}
+.pwa-install-dialog::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+.pwa-install-close {
+  position: absolute;
+  inset-inline-end: 12px;
+  top: 12px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+}
+.pwa-install-dialog h2 {
+  margin: 20px 0 26px;
+  font-size: 24px;
+  line-height: 1.6;
+}
+.pwa-install-dialog h3 {
+  font-size: 17px;
+  margin: 20px 0 8px;
+}
+.pwa-install-dialog p {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.9;
+  margin-bottom: 16px;
+}
+.pwa-install-dialog .pwa-install-note {
+  font-size: 13px;
+  margin: 24px 0;
+}
+.pwa-install-dialog > .primary {
+  width: 100%;
+  min-height: 44px;
+}
+@media (max-width: 700px) {
+  .pwa-install-dialog {
+    padding: 24px;
+  }
+}
