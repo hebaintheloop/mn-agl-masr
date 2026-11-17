@@ -11,3 +11,9 @@ Excel uses a right-to-left sheet, frozen table headers, auto-filtering, wrapped 
 Verification: production-mode Next build and TypeScript, 30 unit tests including XLSX round-trip and multi-page PDF generation, actual PDF rasterization for Arabic layout, all seven view exports in browser fixtures, request separation/search/cancellation handling, student UI isolation, 375/390px and dark mode, plus existing attendance, leader UX and animation regression checks. Production dependencies audited with zero reported vulnerabilities. ExcelJS's compatible UUID dependency is pinned to 11.1.1 through an override.
 
 Browser tests use intercepted roster fixtures; no production students, requests or attendance are created. Test PDF samples contain fixture data only.
+
+## Production verification, 17 November 2026, Cairo
+
+Commit `5b5fe2b` deployed READY as `dpl_9pXJCD61iTqoy168rLBHSm4acL3N` at https://mn-agl-masr.vercel.app/. The complete request/report browser suite passed against this deployed frontend using intercepted roster fixtures, including actual generated XLSX and PDF downloads for all seven views. Separate real production checks matched all four image/font SHA1 hashes, loaded all three photographs on the mobile homepage, verified upcoming-event exclusion from the public API and 401 on anonymous roster access, and found no browser errors. The initial five-minute error/fatal runtime-log scan returned no records.
+
+No database changes or production student data mutations were required. Deployment used direct source upload; the source commit and ZIP archive were updated locally without a GitHub push.
