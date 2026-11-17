@@ -18,6 +18,7 @@ import {
   Users,
   Shirt,
 } from "lucide-react";
+import { toAsciiDigits } from "@/lib/number-input";
 import { uiError } from "@/lib/ui-error";
 import { PwaInstall } from "./pwa-install";
 import { ImageUpload, ImagePreview } from "./image-upload";
@@ -86,6 +87,15 @@ const date = (s: string, en: boolean) =>
     day: "numeric",
     month: "long",
   });
+function normalizeNumberInput(e: React.FormEvent<HTMLInputElement>) {
+  const input = e.currentTarget,
+    value = toAsciiDigits(input.value);
+  if (value !== input.value) {
+    const caret = input.selectionStart;
+    input.value = value;
+    if (caret !== null) input.setSelectionRange(caret, caret);
+  }
+}
 export default function App() {
   const [home, setHome] = useState<{
     video_url?: string;
@@ -98,6 +108,7 @@ export default function App() {
     [auth, setAuth] = useState<string | null>(null),
     [me, setMe] = useState<Me | null>(null),
     [authChecked, setAuthChecked] = useState(false),
+    [profileFailed, setProfileFailed] = useState(false),
     [events, setEvents] = useState<EventItem[]>([]),
     [selected, setSelected] = useState<EventItem | null>(null),
     [notice, setNotice] = useState(""),
@@ -120,6 +131,7 @@ export default function App() {
     [past, setPast] = useState(false);
   const t = (ar: string, eng: string) => (en ? eng : ar);
   const initialized = useRef(false);
+  const operationBusy = useRef(false);
   const dataRequest = useRef(0);
   const uploadBusyRef = useRef(false);
   uploadBusyRef.current = uploadBusy;
@@ -174,16 +186,29 @@ export default function App() {
   const refreshMe = async () => {
     try {
       setMe(await api("me"));
-    } catch {
-      setMe(null);
+      setProfileFailed(false);
+      return true;
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        setMe(null);
+        setProfileFailed(false);
+      } else setProfileFailed(true);
+      return false;
     } finally {
       setAuthChecked(true);
     }
   };
   useEffect(() => {
     setDark(document.documentElement.dataset.theme === "dark");
-    if (new URLSearchParams(location.search).get("join") === "1")
-      setAuth("signup");
+    const params = new URLSearchParams(location.search);
+    if (params.get("event")) setView("event-loading");
+    else if (
+      ["events", "leaderboard", "account", "scan", "leader"].includes(
+        params.get("view") || "",
+      )
+    )
+      setView(params.get("view")!);
+    if (params.get("join") === "1") setAuth("signup");
     refresh().catch(() => setLoadFailed(true));
     refreshMe();
   }, []);
@@ -225,6 +250,8 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   async function run(fn: () => Promise<void>) {
+    if (operationBusy.current) return;
+    operationBusy.current = true;
     setBusy(true);
     setError("");
     try {
@@ -232,6 +259,7 @@ export default function App() {
     } catch (e) {
       setError(uiError(e instanceof Error ? e.message : null));
     } finally {
+      operationBusy.current = false;
       setBusy(false);
     }
   }
@@ -249,14 +277,35 @@ export default function App() {
     return () => window.removeEventListener("popstate", pop);
   }, [events]);
   useEffect(() => {
+    if (!menu) return;
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMenu(false);
+        document.querySelector<HTMLButtonElement>(".mobile-menu")?.focus();
+      }
+    };
+    const outside = (e: PointerEvent) => {
+      if (!(e.target as Element).closest(".site-header")) setMenu(false);
+    };
+    document.addEventListener("keydown", key);
+    document.addEventListener("pointerdown", outside);
+    return () => {
+      document.removeEventListener("keydown", key);
+      document.removeEventListener("pointerdown", outside);
+    };
+  }, [menu]);
+  useEffect(() => {
     if (!auth && !creating && !recovery && !qr) return;
     const previous = document.activeElement as HTMLElement;
     const modal = document.querySelector<HTMLElement>("[role=dialog]");
-    const first = modal?.querySelector<HTMLElement>("input,button,a[href]");
+    const first =
+      modal?.querySelector<HTMLElement>(
+        'input:not([type="hidden"]),textarea',
+      ) || modal?.querySelector<HTMLElement>("button,a[href]");
     first?.focus();
     const key = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !recovery) {
-        if (creating && uploadBusyRef.current) return;
+        if (operationBusy.current || uploadBusyRef.current) return;
         setAuth(null);
         setCreating(false);
         setQr("");
@@ -305,6 +354,8 @@ export default function App() {
   async function register(ev: React.FormEvent<HTMLFormElement>) {
     ev.preventDefault();
     const f = Object.fromEntries(new FormData(ev.currentTarget));
+    for (const key of ["student_code", "phone", "national_id"])
+      if (typeof f[key] === "string") f[key] = toAsciiDigits(f[key]);
     await run(async () => {
       const d = await api(auth!, f, true);
       await refreshMe();
@@ -379,7 +430,23 @@ export default function App() {
               </small>
             </span>
           </button>
-          <nav className={menu ? "open" : ""} aria-label="القائمة الرئيسية">
+          <nav
+            id="main-navigation"
+            className={menu ? "open" : ""}
+            aria-label="القائمة الرئيسية"
+          >
+            {!me && authChecked && !profileFailed && (
+              <button
+                className="mobile-login"
+                onClick={() => {
+                  setMenu(false);
+                  setError("");
+                  setAuth("login");
+                }}
+              >
+                تسجيل الدخول
+              </button>
+            )}
             <button
               className={view === "home" ? "active" : ""}
               onClick={() => go("home")}
@@ -429,7 +496,15 @@ export default function App() {
             >
               {dark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
-            {me ? (
+            {!authChecked || (profileFailed && !me) ? (
+              <span
+                className="nav-session-loading"
+                role="status"
+                aria-label="جارٍ تحميل حسابك"
+              >
+                <LoaderCircle className="spin" size={18} />
+              </span>
+            ) : me ? (
               <button
                 className="small-btn"
                 onClick={() =>
@@ -472,12 +547,29 @@ export default function App() {
               onClick={() => setMenu(!menu)}
               aria-label="القائمة"
               aria-expanded={menu}
+              aria-controls="main-navigation"
             >
               <Menu size={20} />
             </button>
           </div>
         </div>
       </header>
+      {profileFailed && (
+        <div className="profile-retry" role="alert">
+          <p>مش قادرين نحدّث بيانات حسابك دلوقتي. جرّب التحديث تاني.</p>
+          <button
+            className="outline"
+            disabled={busy}
+            onClick={() =>
+              run(async () => {
+                await refreshMe();
+              })
+            }
+          >
+            تحديث الحساب
+          </button>
+        </div>
+      )}
       {notice && (
         <div role="status" className="toast">
           <Check size={18} />
@@ -493,12 +585,30 @@ export default function App() {
         </div>
       )}
       <main className={view === "home" ? "home-main" : "workspace-main"}>
+        {view === "event-loading" && (
+          <section className="app-container narrow">
+            {loadFailed ? (
+              <Empty
+                title="مش قادرين نحمّل الفعالية دلوقتي"
+                text="جرّب تاني بعد لحظة."
+                label="جرّب تاني"
+                action={() =>
+                  run(async () => {
+                    await refresh(true);
+                  })
+                }
+              />
+            ) : (
+              <p role="status">بنحمّل الفعالية…</p>
+            )}
+          </section>
+        )}
         {view === "account" && !authChecked && (
           <section className="app-container narrow" role="status">
             {t("جارٍ تحميل حسابك…", "Loading your account…")}
           </section>
         )}
-        {view === "account" && authChecked && !me && (
+        {view === "account" && authChecked && !me && !profileFailed && (
           <section className="app-container narrow">
             <Empty
               title={t("أهلًا بك في من أجل مصر", "Welcome to Mn Agl Masr")}
@@ -520,6 +630,7 @@ export default function App() {
         )}
         {view === "leader" &&
           authChecked &&
+          (me || !profileFailed) &&
           (me?.profile.role === "leader" ? (
             <LeaderWorkspace
               events={events}
@@ -546,65 +657,72 @@ export default function App() {
               />
             </section>
           ))}
-        {(view === "event-gate" ||
-          (view === "events" && authChecked && !me) ||
-          (view === "event" &&
-            selected &&
-            !me &&
-            authChecked &&
-            new Date(selected.end_at) > new Date())) && (
-          <section className="app-container narrow event-enroll">
-            <h1>
-              {me
-                ? "مش قادرين نعرض الفعالية دلوقتي"
-                : "سجّل معانا عشان تأكد مشاركتك"}
-            </h1>
-            {me ? (
-              <>
-                <p>جرّب تفتح الفعالية تاني.</p>
-                <button
-                  className="primary"
-                  onClick={() =>
-                    run(async () => {
-                      const id = new URLSearchParams(location.search).get(
-                        "event",
-                      );
-                      if (!id) {
-                        go("events");
-                        return;
-                      }
-                      try {
-                        const result = await api("event", { event_id: id });
-                        openEvent(result.event);
-                      } catch (e) {
-                        if (e instanceof ApiError && e.status === 404)
-                          setView("event-missing");
-                        else throw e;
-                      }
-                    })
-                  }
-                >
-                  افتح الفعالية
-                </button>
-              </>
-            ) : (
-              <>
-                <p>
-                  الفعاليات الجاية متاحة لأعضاء الأسرة. اعمل حسابك، ولو عندك
-                  حساب سجّل دخولك.
-                </p>
-                <div>
-                  <button className="primary" onClick={() => setAuth("signup")}>
-                    اعمل حسابك
+        {(me || !profileFailed) &&
+          (view === "event-gate" ||
+            (view === "events" && authChecked && !me) ||
+            (view === "event" &&
+              selected &&
+              !me &&
+              authChecked &&
+              new Date(selected.end_at) > new Date())) && (
+            <section className="app-container narrow event-enroll">
+              <h1>
+                {me
+                  ? "مش قادرين نعرض الفعالية دلوقتي"
+                  : "سجّل معانا عشان تأكد مشاركتك"}
+              </h1>
+              {me ? (
+                <>
+                  <p>جرّب تفتح الفعالية تاني.</p>
+                  <button
+                    className="primary"
+                    onClick={() =>
+                      run(async () => {
+                        const id = new URLSearchParams(location.search).get(
+                          "event",
+                        );
+                        if (!id) {
+                          go("events");
+                          return;
+                        }
+                        try {
+                          const result = await api("event", { event_id: id });
+                          openEvent(result.event);
+                        } catch (e) {
+                          if (e instanceof ApiError && e.status === 404)
+                            setView("event-missing");
+                          else throw e;
+                        }
+                      })
+                    }
+                  >
+                    افتح الفعالية
                   </button>
-                  <button className="outline" onClick={() => setAuth("login")}>
-                    عندي حساب، سجّل دخولي
-                  </button>
-                </div>
-              </>
-            )}
-          </section>
-        )}
+                </>
+              ) : (
+                <>
+                  <p>
+                    الفعاليات الجاية متاحة لأعضاء الأسرة. اعمل حسابك، ولو عندك
+                    حساب سجّل دخولك.
+                  </p>
+                  <div>
+                    <button
+                      className="primary"
+                      onClick={() => setAuth("signup")}
+                    >
+                      اعمل حسابك
+                    </button>
+                    <button
+                      className="outline"
+                      onClick={() => setAuth("login")}
+                    >
+                      عندي حساب، سجّل دخولي
+                    </button>
+                  </div>
+                </>
+              )}
+            </section>
+          )}
         {view === "event-missing" && (
           <section className="app-container narrow">
             <Empty
@@ -732,7 +850,17 @@ export default function App() {
                           minute: "2-digit",
                           timeZone: "Africa/Cairo",
                         },
-                      )}
+                      )}{" "}
+                      إلى{" "}
+                      {new Date(selected.end_at).toLocaleTimeString("ar-EG", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZone: "Africa/Cairo",
+                      })}
+                      {date(selected.start_at, false) !==
+                        date(selected.end_at, false) &&
+                        `، ${date(selected.end_at, false)}`}
+                      ، بتوقيت القاهرة
                     </small>
                   </div>
                 </div>
@@ -808,6 +936,27 @@ export default function App() {
                               ...data,
                               event_id: selected.id,
                             });
+                            setMe((current) =>
+                              current
+                                ? {
+                                    ...current,
+                                    registrations: [
+                                      ...current.registrations.filter(
+                                        (r) => r.event_id !== selected.id,
+                                      ),
+                                      {
+                                        event_id: selected.id,
+                                        going: true,
+                                        accommodation: String(
+                                          data.accommodation || "",
+                                        ),
+                                        excuse: String(data.excuse || ""),
+                                        request_status: "accepted",
+                                      },
+                                    ],
+                                  }
+                                : current,
+                            );
                             await refreshMe();
                             setNotice(
                               t(
@@ -875,10 +1024,11 @@ export default function App() {
                           ) : (
                             <Check size={17} />
                           )}{" "}
-                          {t(
-                            "أكد مشاركتك واحفظ الطلبات",
-                            "Confirm attendance & save requests",
-                          )}
+                          {me.registrations.some(
+                            (r) => r.event_id === selected.id && r.going,
+                          )
+                            ? "حفظ التعديلات"
+                            : "أكد مشاركتك واحفظ الطلبات"}
                         </button>
                         {me.registrations.some(
                           (r) => r.event_id === selected.id && r.going,
@@ -893,6 +1043,19 @@ export default function App() {
                                   event_id: selected.id,
                                   going: false,
                                 });
+                                setMe((current) =>
+                                  current
+                                    ? {
+                                        ...current,
+                                        registrations:
+                                          current.registrations.map((r) =>
+                                            r.event_id === selected.id
+                                              ? { ...r, going: false }
+                                              : r,
+                                          ),
+                                      }
+                                    : current,
+                                );
                                 await refreshMe();
                                 setNotice(
                                   t("مشاركتك اتلغت", "Registration cancelled"),
@@ -958,12 +1121,9 @@ export default function App() {
                 ))
               ) : (
                 <Empty
-                  title={t(
-                    "هنا تبدأ المنافسة الجميلة",
-                    "This is where it begins",
-                  )}
+                  title={t("لسه مفيش نقاط", "This is where it begins")}
                   text={t(
-                    "شارك في فعالية واجمع أول نقاطك.",
+                    "نقاط الحضور هتظهر هنا أول ما تتسجّل.",
                     "Join an event and earn your first points.",
                   )}
                 />
@@ -1010,6 +1170,8 @@ export default function App() {
                 onSubmit={(e) => {
                   e.preventDefault();
                   const f = Object.fromEntries(new FormData(e.currentTarget));
+                  if (typeof f.phone === "string")
+                    f.phone = toAsciiDigits(f.phone);
                   run(async () => {
                     const result = await api("profile", f);
                     setMe((current) =>
@@ -1029,10 +1191,11 @@ export default function App() {
                   <input
                     type="tel"
                     name="phone"
+                    onInput={normalizeNumberInput}
                     dir="ltr"
                     autoComplete="tel"
                     defaultValue={me.profile.phone}
-                    pattern={"\\+?[0-9\\s\\-]{10,16}"}
+                    pattern={"\\+?[0-9٠-٩۰-۹\\s\\-]{10,16}"}
                     maxLength={16}
                     required
                   />
@@ -1103,7 +1266,7 @@ export default function App() {
             )}
           </section>
         )}
-        {view === "scan" && authChecked && (
+        {view === "scan" && authChecked && (me || !profileFailed) && (
           <section className="app-container narrow">
             <h1>{t("تسجيل الحضور", "Check in")}</h1>
             <p className="muted">
@@ -1156,6 +1319,7 @@ export default function App() {
         <div
           className="modal-overlay"
           onClick={() => {
+            if (operationBusy.current) return;
             setAuth(null);
             setError("");
           }}
@@ -1170,6 +1334,7 @@ export default function App() {
             <button
               className="close icon-btn"
               aria-label="إغلاق"
+              disabled={busy}
               onClick={() => {
                 setAuth(null);
                 setError("");
@@ -1214,12 +1379,13 @@ export default function App() {
                 </label>
               )}
               <label>
-                {t("كود الطالب", "Student code")}
+                {t("كودك في الكلية", "Student code")}
                 <input
                   name="student_code"
+                  onInput={normalizeNumberInput}
                   dir="ltr"
-                  placeholder="2527646"
-                  pattern="[0-9]{7}"
+                  placeholder="٧ أرقام"
+                  pattern="[0-9٠-٩۰-۹]{7}"
                   maxLength={7}
                   inputMode="numeric"
                   autoComplete="username"
@@ -1232,10 +1398,11 @@ export default function App() {
                     {t("رقم الهاتف", "Phone number")}
                     <input
                       name="phone"
+                      onInput={normalizeNumberInput}
                       type="tel"
                       dir="ltr"
                       autoComplete="tel"
-                      pattern="\+?[0-9\s-]{10,16}"
+                      pattern={"\\+?[0-9٠-٩۰-۹\\s\\-]{10,16}"}
                       required
                     />
                   </label>
@@ -1243,9 +1410,10 @@ export default function App() {
                     {t("الرقم القومي", "National ID")}
                     <input
                       name="national_id"
+                      onInput={normalizeNumberInput}
                       inputMode="numeric"
                       dir="ltr"
-                      pattern="[0-9]{14}"
+                      pattern="[0-9٠-٩۰-۹]{14}"
                       maxLength={14}
                       autoComplete="off"
                       required
@@ -1292,6 +1460,7 @@ export default function App() {
             {auth === "login" && (
               <button
                 className="forgot-password"
+                disabled={busy}
                 onClick={() => {
                   setAuth("recover");
                   setError("");
@@ -1306,6 +1475,7 @@ export default function App() {
                 : t("أول مرة هنا؟", "New here?")}{" "}
               <button
                 onClick={() => {
+                  if (operationBusy.current) return;
                   setAuth(auth === "signup" ? "login" : "signup");
                   setError("");
                 }}
@@ -1347,7 +1517,7 @@ export default function App() {
                 );
                 a.download = "mn-agl-masr-recovery.txt";
                 a.click();
-                URL.revokeObjectURL(a.href);
+                setTimeout(() => URL.revokeObjectURL(a.href), 30000);
               }}
             >
               <Download size={16} />

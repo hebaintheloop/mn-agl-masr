@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { toAsciiDigits } from "@/lib/number-input";
 import {
   Check,
   Download,
@@ -156,7 +157,7 @@ export function LeaderAttendance({
       .trim()
       .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
     if (!/^[0-9]{7}$/.test(normalized)) {
-      setError("كود الطالب يجب أن يكون 7 أرقام دون شرطات");
+      setError("اكتب كود الطالب في الكلية، ٧ أرقام.");
       return;
     }
     addBusy.current = true;
@@ -262,10 +263,10 @@ export function LeaderAttendance({
                 pattern="[0-9٠-٩]{7}"
                 maxLength={16}
                 required
-                placeholder="2527646"
+                placeholder="٧ أرقام"
                 autoComplete="off"
                 value={code}
-                onChange={(e) => setCode(e.target.value)}
+                onChange={(e) => setCode(toAsciiDigits(e.target.value))}
               />
               <button
                 className="primary"

@@ -1403,3 +1403,115 @@ textarea {
     width: 100%;
   }
 }
+
+/* Clearer Arabic navigation and comfortable phone targets. */
+.mobile-login {
+  display: none;
+}
+.site-header,
+.site-header button {
+  font-family: "Noto Sans Arabic Nav", Inter, sans-serif;
+}
+.nav-wrap nav button {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  min-height: 44px;
+}
+.wordmark {
+  font-weight: 600;
+}
+.wordmark small {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+.nav-actions .login-link,
+.nav-actions .primary.small,
+.nav-actions .small-btn {
+  font-size: 14px;
+  font-weight: 600;
+  min-height: 44px;
+}
+.nav-session-loading {
+  min-width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+}
+.profile-retry {
+  max-width: 920px;
+  margin: 20px auto;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.profile-retry p {
+  margin: 0;
+  flex: 1;
+  min-width: 200px;
+}
+@media (max-width: 1000px) {
+  .site-header {
+    height: 84px;
+  }
+  .nav-wrap {
+    padding: 0 16px;
+    gap: 8px;
+  }
+  .wordmark {
+    font-size: 18px;
+    gap: 6px;
+  }
+  .wordmark small {
+    max-width: 110px;
+    font-size: 10px;
+  }
+  .nav-actions {
+    gap: 6px;
+  }
+  .nav-actions .login-link {
+    display: none;
+  }
+  .nav-actions .icon-btn {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+  }
+  .nav-actions .primary.small,
+  .nav-actions .small-btn {
+    font-size: 13px;
+    padding: 6px 10px;
+    min-height: 44px;
+  }
+  .mobile-menu {
+    display: inline-flex;
+  }
+  .nav-wrap nav {
+    display: none;
+    position: absolute;
+    top: 84px;
+    left: 0;
+    right: 0;
+    padding: 16px;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    z-index: 30;
+    gap: 8px 20px;
+  }
+  .nav-wrap nav.open {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .nav-wrap nav button {
+    padding: 8px;
+    min-height: 44px;
+    font-size: 15px;
+  }
+  .nav-wrap nav .mobile-login {
+    display: inline-flex;
+    align-items: center;
+  }
+}

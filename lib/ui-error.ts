@@ -2,7 +2,7 @@ export function uiError(message: unknown): string {
   if (typeof message !== "string" || !message) return "حصلت مشكلة. جرّب تاني.";
   if (/[\u0600-\u06ff]/.test(message)) return message;
   if (/Check your student code and password/i.test(message))
-    return "راجع كود الطالب وكلمة المرور.";
+    return "راجع كودك في الكلية وكلمة المرور.";
   if (/Check your details/i.test(message))
     return "راجع البيانات. كلمة المرور 12 حرف على الأقل، والرقم القومي 14 رقم. لو الكود متسجل، جرّب تسجّل دخولك.";
   if (/Please wait/i.test(message)) return "استنّى شوية وجرّب تاني.";

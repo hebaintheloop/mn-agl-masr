@@ -36,7 +36,7 @@ export function PasswordField({ mode }: { mode: string }) {
           )}
         </button>
       </div>
-      <small id={id + "-hint"}>12 حرفًا على الأقل</small>
+      <small id={id + "-hint"}>١٢ حرف أو رقم على الأقل</small>
     </div>
   );
 }

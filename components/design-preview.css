@@ -1228,3 +1228,38 @@ html[data-theme="dark"] .dp-guide-steps > li::before {
     font-size: 19px;
   }
 }
+
+.dp-header,
+.dp-header button,
+.dp-header a {
+  font-family: "Noto Sans Arabic Nav", Inter, sans-serif;
+}
+.dp-header nav,
+.dp-header nav > button {
+  font-size: 15px;
+  font-weight: 600;
+}
+.dp-header nav > a:not(.dp-join),
+.dp-header nav > button:not(.dp-icon) {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.dp-header .dp-wordmark small {
+  font-size: 11px;
+  font-weight: 500;
+}
+@media (max-width: 700px) {
+  .dp-header nav {
+    gap: 8px;
+  }
+  .dp-header nav > a:not(.dp-join) {
+    display: none;
+  }
+  .dp-header nav > button {
+    font-size: 13px;
+  }
+  .dp-header .dp-wordmark small {
+    font-size: 10px;
+  }
+}

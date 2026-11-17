@@ -54,3 +54,11 @@
   font-display: swap;
   src: url(/assets/font-8.woff2) format('woff2');
 }
+@font-face {
+  font-family: 'Noto Sans Arabic Nav';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url(/assets/nav-arabic.woff2) format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-08FF, U+200C-200E, U+FB50-FDFF, U+FE70-FEFC;
+}

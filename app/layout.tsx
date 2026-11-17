@@ -10,7 +10,10 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
   },
   icons: {
-    icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    icon: [
+      { url: "/icons/favicon-32.png?v=2", sizes: "32x32", type: "image/png" },
+      { url: "/icons/favicon-16.png?v=2", sizes: "16x16", type: "image/png" },
+    ],
     apple: [
       {
         url: "/icons/apple-touch-icon.png",
@@ -33,6 +36,13 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
+        <link
+          rel="preload"
+          href="/assets/nav-arabic.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
         <link rel="stylesheet" href="/assets/fonts.css" />
         <script
           dangerouslySetInnerHTML={{
