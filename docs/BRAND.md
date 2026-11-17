@@ -13,3 +13,5 @@ Requested Facebook source: https://www.facebook.com/foregypt2030.cu/ . Public ac
 Fallback primary source: https://cu.edu.eg/old/ar/Cairo-University-News-14462.html describes student preparation and training, skills, awareness, development and student exchange. Draft copy is original and informed by that description plus the user's volunteer-activity brief. Do not invent current events, attendance figures or endorsements.
 
 This is a visual identity concept for review, not an approved official university brand manual.
+
+Favicon correction: use the complete supplied badge at 16/32/48px, with no crop, redrawing or replacement monogram. The source file was re-downloaded from the user URL and matched SHA-256 `941a289ffece51736caf840bd8a2267b3d422c1e1ea45a6ced38812a25eee423`.
