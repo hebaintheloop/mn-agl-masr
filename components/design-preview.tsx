@@ -372,22 +372,22 @@ export function CommunityExperience({
           <section className="dp-about" data-hiss-reveal>
             <div>
               <h2>
-                {t("طلاب من علوم،", "Mn Agl Masr.")}
+                {t("ورا كل فعالية،", "Behind every event,")}
                 <br />
-                {t("بنشارك مع بعض", "Made by us.")}
+                {t("ناس من علوم", "students from Science.")}
               </h2>
             </div>
             <div>
               <p>
                 {t(
-                  "إحنا طلاب من أجل مصر في كلية العلوم، جامعة القاهرة. بنجهّز فعاليات وورش، وبنشارك في أنشطة الكلية والتطوّع. هنا هتلاقي تفاصيل كل فعالية وطريقة التسجيل فيها.",
-                  "We are Mn Agl Masr students at the Faculty of Science, Cairo University. Through events, training and volunteering, we develop our skills, broaden our awareness and contribute to our community.",
+                  "إحنا طلاب من أجل مصر بكلية العلوم، جامعة القاهرة. بنجهّز فعاليات وورش وبنشارك في أنشطة تطوّعية. لو عندك فكرة حابب تنفّذها، أو حابب تجرّب دور جديد، فيه مكان ليك وسط الفريق.",
+                  "We are Mn Agl Masr students at the Faculty of Science, Cairo University. We organize events, workshops and volunteering activities. Bring an idea or try a new role alongside the team.",
                 )}
               </p>
               <p className="dp-secondary">
                 {t(
-                  "كل فعالية بتحضرها بتضيف لحسابك نقاط. والفعاليات اللي محتاجة متطوّعين أكتر بتدي نقاط زيادة. كده نعرف مين بيشارك باستمرار ونرشّحه للفرص اللي بتتاح للأسرة.",
-                  "The more you volunteer, the more points you earn and the closer you get to exclusive opportunities. Events that need you most reward you with extra points.",
+                  "مهمة بسيطة في فعالية ممكن تعلّمك تنظّم وقتك، تشتغل مع فريق، وتتعامل مع ناس جديدة. شارك على قد وقتك، واكتسب خبرة من حاجة بتعملها بنفسك.",
+                  "A small role at an event can help you practise managing your time, working in a team and meeting new people. Join when you can and learn through doing.",
                 )}
               </p>
               <a className="dp-inline-link" href="/?join=1" onClick={join}>

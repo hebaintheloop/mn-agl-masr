@@ -83,7 +83,6 @@
 .dp-header nav > button:not(.dp-icon) {
   transition: opacity 0.15s;
 }
-.dp-header nav > a:hover,
 .dp-header nav > button:hover {
   opacity: 0.6;
 }
@@ -244,6 +243,13 @@
   font-size: 12px;
   text-decoration: underline;
   text-underline-offset: 6px;
+}
+.dp-header nav > button:not(.dp-icon):hover,
+.dp-header nav > button:not(.dp-icon):focus-visible,
+.dp-discover:hover,
+.dp-discover:focus-visible {
+  color: var(--link-hover);
+  opacity: 1;
 }
 .dp-about .dp-inline-link {
   margin-top: 24px;
