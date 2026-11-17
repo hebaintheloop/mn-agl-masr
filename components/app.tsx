@@ -809,8 +809,8 @@ export default function App() {
                       >
                         <label>
                           {t(
-                            "تسهيلات محتاجها في الفعالية دي (اختياري)",
-                            "Accommodations for this event (optional)",
+                            "تسهيلات لاحتياج طبي أو إعاقة في الفعالية دي (اختياري)",
+                            "Medical or disability accommodations for this event (optional)",
                           )}
                           <textarea
                             name="accommodation"
@@ -821,8 +821,8 @@ export default function App() {
                               )?.accommodation
                             }
                             placeholder={t(
-                              "أخبرنا بما يساعدك على المشاركة",
-                              "Tell us what would help you take part",
+                              "اكتب المساعدة اللي محتاجها، مش لازم تذكر التشخيص",
+                              "Describe the support you need; no diagnosis is required",
                             )}
                           />
                         </label>

@@ -17,3 +17,9 @@ The landing page now includes `/#accessibility`, titled **من أجل مصر م�
 Both new sections use the existing Arabic font and theme palette, with an unboxed two-column desktop layout and a single column below 700px. Build and TypeScript passed. Browser checks verified section copy, the accommodation anchor, leaderboard link, four-step guide preservation, responsive columns and absence of overflow at 375/390/768/1365px in light/dark, with no page errors. The existing HISS image/motion regression also passed. No backend or database changes were made.
 
 Production: commit `1d410a1` deployed READY as `dpl_FimWZXhmVhMJLvmoGMSvBuY4Vfvf` on 17 November 2026, Cairo. The same browser checks passed against https://mn-agl-masr.vercel.app/ with real public data and no fixture mutations. The initial error/fatal runtime-log scan returned no records. The local checkout and source ZIP are synchronized again; deployment used direct source upload, not a GitHub push.
+
+## Medical accommodation clarification
+
+The owner clarified that accommodations mean medical/health/disability accommodations. The accessibility section, how-to step and optional RSVP accommodation label/placeholder now say this explicitly. Examples include avoiding prolonged standing, suitable seating and mobility support related to health needs. Students are asked to describe the support needed without being required to disclose a diagnosis. Automatic acceptance, event-specific submission and existing request privacy remain as implemented. No medical treatment or on-site clinical service is promised.
+
+Build/TypeScript and the landing browser check passed at 375/390/768/1365px in both themes. A read-only intercepted student fixture verified the updated RSVP label, optional input, diagnosis guidance and mobile layout without saving any production medical information. No backend/schema changes.
