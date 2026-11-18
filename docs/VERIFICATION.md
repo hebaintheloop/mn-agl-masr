@@ -56,3 +56,11 @@ Only Supabase schema and function definitions were queried for the database expl
 The source was re-downloaded from the user's exact gstatic URL and matched the existing official badge byte-for-byte. Removed the previous central crop: all favicon sizes now preserve the full badge, gold ring and original background. Direct full-frame resizing was verified against that downloaded source for 16/32/48px PNGs. ICO PNG entries use RGBA for Next.js image-decoder compatibility. Production build and TypeScript passed.
 
 Deployment `dpl_CqyhT3xPFkKzViADAhDoGpdM6Nvx`, source `fcdc0d0`, is READY. The live browser head points to `favicon-32.png?v=3`; production ICO and 16/32px PNG bytes matched local assets exactly. No account or database changes. This supersedes the previous central-mark favicon description.
+
+## Transparent shared logo
+
+The user requested a transparent derivative of the supplied badge and consistent use throughout the site. `public/assets/cairo-student-logo.png` is the shared edited artwork. Updated header, authentication, design preview, fallback event artwork, favicon, Apple icon, standard PWA icons and offline page. Original JPEG is archived outside public assets. Removed older public icon variants and the opaque maskable manifest entry. Static cache v2 uses new icon paths and removes v1 on activation; private caching remains disabled.
+
+Build/TypeScript, local PWA and image/access regression suites passed. Pixel checks confirmed transparent exterior corners and retained interior artwork across main, standard, Apple and favicon PNGs. Browser checks confirmed header/auth reference the shared PNG without clipping, with mobile light/dark screenshots.
+
+Production deployment `dpl_5Gs4Ayf9y2yTMYYXS1TypTrvYdMH`, source `f251e9e`, is READY. Live main-logo and favicon bytes matched local exports. Manifest/Apple paths reference only new icons, their transparency was verified, and the previous public JPEG returns 404. The deployed PWA suite passed offline/static-cache/privacy checks; the remote proxy certificate limits installability inspection, while full local Chromium installability passed. Actual phone installation was not performed. Recent error/fatal runtime-log scan returned no matching records. No database, account or business-data changes.
