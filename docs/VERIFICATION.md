@@ -64,3 +64,9 @@ The user requested a transparent derivative of the supplied badge and consistent
 Build/TypeScript, local PWA and image/access regression suites passed. Pixel checks confirmed transparent exterior corners and retained interior artwork across main, standard, Apple and favicon PNGs. Browser checks confirmed header/auth reference the shared PNG without clipping, with mobile light/dark screenshots.
 
 Production deployment `dpl_5Gs4Ayf9y2yTMYYXS1TypTrvYdMH`, source `f251e9e`, is READY. Live main-logo and favicon bytes matched local exports. Manifest/Apple paths reference only new icons, their transparency was verified, and the previous public JPEG returns 404. The deployed PWA suite passed offline/static-cache/privacy checks; the remote proxy certificate limits installability inspection, while full local Chromium installability passed. Actual phone installation was not performed. Recent error/fatal runtime-log scan returned no matching records. No database, account or business-data changes.
+
+## Leader navbar simplification
+
+Removed the student-facing “الفعاليات” navbar button for leader profiles. “الإدارة” remains their navigation entry point; guest/student navigation retains “الفعاليات”. The role-sensitive event link waits for the initial account check, preventing a leader-facing flash of the student link.
+
+Build and TypeScript passed. A targeted browser check passed locally and on production at 1365px and 390px for guests, students and leaders, including opening the leader dashboard through الإدارة. Fixtures intercepted API responses; no business data or accounts were changed. Deployment `dpl_7K7hguFtMiXYmKxiqiWTmJsw4fqE`, source `3f4c281`, is READY. Recent error/fatal runtime-log scan returned no matching records.
