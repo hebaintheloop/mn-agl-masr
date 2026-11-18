@@ -453,12 +453,14 @@ export default function App() {
             >
               {t("الرئيسية", "Home")}
             </button>
-            <button
-              className={view === "events" ? "active" : ""}
-              onClick={() => go("events")}
-            >
-              {t("الفعاليات", "Events")}
-            </button>
+            {authChecked && me?.profile.role !== "leader" && (
+              <button
+                className={view === "events" ? "active" : ""}
+                onClick={() => go("events")}
+              >
+                {t("الفعاليات", "Events")}
+              </button>
+            )}
             {me?.profile.role === "leader" && (
               <button
                 className={"leader-nav " + (view === "leader" ? "active" : "")}
