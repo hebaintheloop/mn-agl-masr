@@ -1,6 +1,6 @@
 # Phone installation
 
-The site is an installable PWA with an Arabic RTL manifest, canonical app identity/start URL/scope, standalone display, red theme color, and 192/512px icons plus a dedicated maskable icon and 180px Apple touch icon. Icons are deterministic exports of the existing official logo. Apple title/status-bar metadata and a mobile viewport are included. No push-notification service or paid dependency was added.
+The site is an installable PWA with an Arabic RTL manifest, canonical app identity/start URL/scope, standalone display, red theme color, and transparent 192/512px icons and a 180px Apple touch icon. Icons are exports of the shared transparent badge. The previous opaque maskable icon was removed so only the current logo is advertised. Apple title/status-bar metadata and a mobile viewport are included. No push-notification service or paid dependency was added.
 
 The public footer's **تثبيت التطبيق** button invokes the native browser install prompt when available, otherwise opens an accessible native dialog with Android/Chrome and iPhone/Safari instructions. It explains opening an embedded Facebook/Instagram link in the device browser first. The control hides in standalone mode or after installation. The instructions support keyboard dismissal and existing light/dark styles.
 

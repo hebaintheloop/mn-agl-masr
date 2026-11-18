@@ -933,7 +933,6 @@ html[lang="en"] .dp-last-word h2 {
   height: 58px;
   flex-shrink: 0;
   object-fit: contain;
-  clip-path: circle(48%);
 }
 .dp-headline-accent {
   color: #ce1126;

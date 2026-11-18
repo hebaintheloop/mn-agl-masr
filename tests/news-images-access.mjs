@@ -5,7 +5,7 @@ const base=process.env.UI_TEST_BASE_URL||'http://localhost:4300';
 const storage='https://qtoujzmmsojwmgpakrbi.supabase.co';
 const actor='11111111-1111-4111-8111-111111111111';
 const eventId='22222222-2222-4222-8222-222222222222';
-const photo=await readFile('public/assets/cairo-student-logo.jpg');
+const photo=await readFile('docs/branding/original-logo.jpg');
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox'],proxy:base.startsWith('https:')&&process.env.HTTPS_PROXY?{server:process.env.HTTPS_PROXY}:undefined});
 const context=await browser.newContext({ignoreHTTPSErrors:true,viewport:{width:390,height:844},locale:'en-US'});const p=await context.newPage();const png=Buffer.from(await p.evaluate(()=>{const c=document.createElement('canvas');c.width=4;c.height=4;const x=c.getContext('2d');x.fillStyle='#ce1126';x.fillRect(0,0,4,4);return c.toDataURL('image/png').split(',')[1]}),'base64');const errors=[];p.on('pageerror',e=>errors.push(e.message));
 let authenticated=false,role='student',rsvps=0,uploads=0,created=null,home={};

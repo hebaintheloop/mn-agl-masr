@@ -412,7 +412,7 @@ export default function App() {
           >
             <img
               className="app-logo"
-              src="/assets/cairo-student-logo.jpg"
+              src="/assets/cairo-student-logo.png"
               width={58}
               height={58}
               alt={t(
@@ -1344,7 +1344,7 @@ export default function App() {
             </button>
             <img
               className="app-logo auth-logo"
-              src="/assets/cairo-student-logo.jpg"
+              src="/assets/cairo-student-logo.png"
               width={58}
               height={58}
               alt={t(

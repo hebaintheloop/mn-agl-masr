@@ -16,7 +16,7 @@
 - Direct event links have a loading/error/retry state; initial data failure no longer leaves the user on an unrelated homepage.
 - Empty leaderboard copy describes the actual empty state without a competition slogan.
 - Delayed revocation of the local recovery download URL avoids immediately invalidating it before a browser has consumed it.
-- Added dedicated 16/32/48px favicons and a multi-size ICO from the complete user-supplied official badge, including its gold ring. Phone install icons remain separate.
+- Added dedicated 16/32/48px favicons and a multi-size ICO from the complete badge, including its gold ring; the current exports use its transparent derivative. Phone install icons remain separate.
 
 ## Validation
 

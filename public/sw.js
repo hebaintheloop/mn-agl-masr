@@ -1,8 +1,8 @@
-const CACHE = "mam-pwa-static-v1";
+const CACHE = "mam-pwa-static-v2";
 const PUBLIC_FILES = [
   "/offline.html",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
+  "/icons/logo-192.png",
+  "/icons/logo-512.png",
 ];
 
 self.addEventListener("install", (event) => {

@@ -273,7 +273,7 @@ export function CommunityExperience({
           <button className="dp-wordmark" onClick={() => navigate("welcome")}>
             <img
               className="dp-logo"
-              src="/assets/cairo-student-logo.jpg"
+              src="/assets/cairo-student-logo.png"
               alt={t(
                 "شعار طلاب طلاب من علوم، جامعة القاهرة",
                 "Students for Egypt, Cairo University logo",

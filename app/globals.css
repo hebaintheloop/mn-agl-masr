@@ -1106,7 +1106,6 @@ label small {
   width: 58px;
   height: 58px;
   object-fit: contain;
-  clip-path: circle(48%);
   flex-shrink: 0;
 }
 .auth-logo {
@@ -1281,7 +1280,6 @@ textarea {
   width: 52px;
   height: 52px;
   object-fit: contain;
-  clip-path: circle(48%);
 }
 .cover-letter h2 {
   font-size: 28px;
@@ -1304,7 +1302,6 @@ textarea {
   width: 76%;
   height: 76%;
   object-fit: contain;
-  clip-path: circle(48%);
 }
 @media (max-width: 700px) {
   .form-columns {

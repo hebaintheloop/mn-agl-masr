@@ -28,7 +28,7 @@ export function EventArtwork({
         <div className="event-artwork-fallback">
           <img
             className="event-artwork-logo"
-            src="/assets/cairo-student-logo.jpg"
+            src="/assets/cairo-student-logo.png"
             alt=""
           />
           <strong>{title}</strong>

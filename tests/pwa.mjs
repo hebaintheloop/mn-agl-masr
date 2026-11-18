@@ -144,8 +144,8 @@ const cached = await p.evaluate(async () => {
   return result.sort();
 });
 assert.deepEqual(cached, [
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
+  "/icons/logo-192.png",
+  "/icons/logo-512.png",
   "/offline.html",
 ]);
 console.log("PWA check: offline");
