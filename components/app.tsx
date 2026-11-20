@@ -35,6 +35,7 @@ type EventItem = {
   location: string;
   start_at: string;
   end_at: string;
+  response_deadline_at?: string;
   points: number;
   cover_url: string | null;
   dress_code?: string;
@@ -46,6 +47,7 @@ type Profile = {
   phone: string;
   email?: string | null;
   role: string;
+  study_year?: string;
 };
 type Registration = {
   event_id: string;
@@ -123,6 +125,7 @@ export default function App() {
     [creating, setCreating] = useState(false),
     [uploadBusy, setUploadBusy] = useState(false),
     [qr, setQr] = useState(""),
+    [lastQr, setLastQr] = useState(""),
     [qrImage, setQrImage] = useState(""),
     [manageRoster, setManageRoster] = useState(false),
     [eventDraft, setEventDraft] = useState<Record<string, string>>({}),
@@ -888,6 +891,18 @@ export default function App() {
                 </div>
                 {me?.profile.role === "leader" && (
                   <>
+                    {lastQr.startsWith(`MAM1.${selected.id}.`) && (
+                      <button
+                        className="outline leader-qr-reopen"
+                        onClick={() => {
+                          setQr(lastQr);
+                          if (!qrImage) generateQr(lastQr);
+                        }}
+                      >
+                        <ScanLine size={17} />
+                        {t("فتح رمز الحضور", "Open attendance QR")}
+                      </button>
+                    )}
                     <button
                       className="text-btn leader-back"
                       onClick={() => go("leader")}
@@ -1427,6 +1442,16 @@ export default function App() {
                       )}
                     </small>
                   </label>
+                  <label>
+                    {t("الفرقة", "Year")}
+                    <select name="year" required defaultValue="">
+                      <option value="" disabled>{t("اختار الفرقة", "Select year")}</option>
+                      <option value="first">الفرقة الأولى</option>
+                      <option value="second">الفرقة الثانية</option>
+                      <option value="third">الفرقة الثالثة</option>
+                      <option value="fourth">الفرقة الرابعة</option>
+                    </select>
+                  </label>
                 </>
               )}
               {auth === "recover" && (
@@ -1571,10 +1596,11 @@ export default function App() {
                 e.preventDefault();
                 if (uploadBusy) return;
                 const f = Object.fromEntries(new FormData(e.currentTarget));
-                let startAt: string, endAt: string;
+                let startAt: string, endAt: string, responseDeadlineAt: string;
                 try {
                   startAt = cairoLocalToISO(String(f.start_at));
                   endAt = cairoLocalToISO(String(f.end_at));
+                  responseDeadlineAt = cairoLocalToISO(String(f.response_deadline_at));
                 } catch {
                   setError(
                     t(
@@ -1598,16 +1624,24 @@ export default function App() {
                   end.reportValidity();
                   return;
                 }
+                if (new Date(responseDeadlineAt) > new Date(startAt)) {
+                  const deadline = e.currentTarget.querySelector<HTMLInputElement>('[name="response_deadline_at"]')!;
+                  deadline.setCustomValidity(t("آخر موعد للتسجيل يجب أن يكون قبل بداية الفعالية أو في نفس وقتها", "Response deadline must be on or before the event start"));
+                  deadline.reportValidity();
+                  return;
+                }
                 run(async () => {
                   const d = await api("create-event", {
                     ...f,
                     points: Number(f.points),
                     start_at: startAt,
                     end_at: endAt,
+                    response_deadline_at: responseDeadlineAt,
                   });
                   setEventDraft({});
                   setCreating(false);
                   setQrImage("");
+                  setLastQr(d.code);
                   setQr(d.code);
                   await generateQr(d.code);
                   try {
@@ -1684,6 +1718,10 @@ export default function App() {
                     defaultValue={eventDraft.end_at}
                     required
                   />
+                </label>
+                <label>
+                  {t("آخر موعد للتسجيل", "RSVP deadline")}
+                  <input type="datetime-local" name="response_deadline_at" defaultValue={eventDraft.response_deadline_at} required />
                 </label>
               </div>
               <label>
@@ -1806,10 +1844,7 @@ export default function App() {
             )}
             <button
               className="text-btn"
-              onClick={() => {
-                setQr("");
-                setQrImage("");
-              }}
+              onClick={() => setQr("")}
             >
               {t("تم", "Done")}
             </button>

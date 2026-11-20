@@ -92,6 +92,7 @@ export async function POST(req: NextRequest) {
           dress_code: z.string().trim().max(300).optional(),
           start_at: z.iso.datetime(),
           end_at: z.iso.datetime(),
+          response_deadline_at: z.iso.datetime(),
           points: z.number().int().min(0).max(10000),
           cover_url: z
             .union([z.literal(""), z.url().startsWith("https://")])
@@ -101,6 +102,8 @@ export async function POST(req: NextRequest) {
       b.dress_code = ev.dress_code || "";
       if (new Date(ev.end_at) <= new Date(ev.start_at))
         throw new Error("End time must be after start time");
+      if (new Date(ev.response_deadline_at) > new Date(ev.start_at))
+        throw new Error("Response deadline must be on or before the event start");
     }
     if (b.action === "home") {
       b.home = z

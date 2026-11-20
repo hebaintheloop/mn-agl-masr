@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
           full_name: z.string().trim().min(2).max(100),
           phone: z.string().regex(/^\+?[0-9\s-]{10,16}$/),
           national_id: z.string().regex(/^\d{14}$/),
+          year: z.enum(["first", "second", "third", "fourth"]),
         })
         .parse(b);
       recovery = recoveryCode();
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
         password,
         full_name: p.full_name,
         phone: p.phone,
+        year: p.year,
         ciphertext: encryptIdentity(p.national_id),
         recovery_hash: hash(recovery),
       });

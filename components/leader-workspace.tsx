@@ -10,11 +10,13 @@ import {
   Check,
   LoaderCircle,
   RefreshCw,
+  Download,
 } from "lucide-react";
 import type { LeaderApi, LeaderEvent } from "./leader-attendance";
 import "./leader.css";
 import { EventArtwork } from "./event-artwork";
 import { ImageUpload, ImagePreview } from "./image-upload";
+import { downloadLeaderboardPdf, downloadLeaderboardXlsx } from "@/lib/leaderboard-report";
 type Home = {
   video_url?: string;
   poster_url?: string;
@@ -47,6 +49,17 @@ export function LeaderWorkspace({
   const [pending, setPending] = useState(""),
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
+  const [leaderboardExporting, setLeaderboardExporting] = useState<"xlsx" | "pdf" | null>(null);
+  async function exportLeaderboard(format: "xlsx" | "pdf") {
+    setLeaderboardExporting(format); setError("");
+    try {
+      const result = await api("leaderboard");
+      if (format === "xlsx") await downloadLeaderboardXlsx(result.rows);
+      else downloadLeaderboardPdf(result.rows);
+      setNotice(t("اتحمّل جدول المتصدرين", "Leaderboard downloaded"));
+    } catch (e) { setError(e instanceof Error ? e.message : "تعذّر تنزيل الجدول"); }
+    finally { setLeaderboardExporting(null); }
+  }
   const [media, setMedia] = useState({
       video_url: home.video_url || "",
       poster_url: home.poster_url || "",
@@ -269,6 +282,12 @@ export function LeaderWorkspace({
           >
             <RefreshCw size={16} className={statsLoading ? "spin" : ""} />
             {statsLoading ? "جارٍ تحديث الأعداد…" : "تحديث الأعداد"}
+          </button>
+          <button className="outline" onClick={() => exportLeaderboard("xlsx")} disabled={!!leaderboardExporting}>
+            <Download size={16} /> {leaderboardExporting === "xlsx" ? "جارٍ التحضير…" : "المتصدرون Excel"}
+          </button>
+          <button className="outline" onClick={() => exportLeaderboard("pdf")} disabled={!!leaderboardExporting}>
+            <Download size={16} /> {leaderboardExporting === "pdf" ? "جارٍ التحضير…" : "المتصدرون PDF"}
           </button>
           {statsError && (
             <p role="alert" className="leader-help">
