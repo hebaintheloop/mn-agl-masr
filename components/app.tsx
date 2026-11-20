@@ -1123,8 +1123,11 @@ export default function App() {
           )}
         {view === "leaderboard" && (
           <section className="app-container narrow">
-            <div className="page-heading">
-              <h1>{t("المتصدرون", "Leaderboard")}</h1>
+            <div className="leaderboard-heading">
+              <div className="leaderboard-title">
+                <h1>{t("المتصدرون", "Leaderboard")}</h1>
+                <Trophy size={32} />
+              </div>
               <div className="leaderboard-heading-actions">
                 {me?.profile.role === "leader" && (
                   <>
@@ -1136,7 +1139,6 @@ export default function App() {
                     </button>
                   </>
                 )}
-                <Trophy size={32} />
               </div>
             </div>
             <div className="leaderboard">
