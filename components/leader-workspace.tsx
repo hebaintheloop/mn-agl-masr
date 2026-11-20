@@ -8,20 +8,16 @@ import {
   ChevronLeft,
   ChevronRight,
   Check,
-  LoaderCircle,
   RefreshCw,
   Download,
+  LoaderCircle,
 } from "lucide-react";
 import type { LeaderApi, LeaderEvent } from "./leader-attendance";
 import "./leader.css";
 import { EventArtwork } from "./event-artwork";
-import { ImageUpload, ImagePreview } from "./image-upload";
 import { downloadLeaderboardPdf, downloadLeaderboardXlsx } from "@/lib/leaderboard-report";
-type Home = {
-  video_url?: string;
-  poster_url?: string;
-  gallery_urls?: string[];
-};
+import { ImageUpload, ImagePreview } from "./image-upload";
+type Home = { video_url?: string; poster_url?: string; gallery_urls?: string[] };
 export function LeaderWorkspace({
   events,
   home,
@@ -41,15 +37,23 @@ export function LeaderWorkspace({
 }) {
   const t = (a: string, b: string) => (en ? b : a);
   const [mediaUploading, setMediaUploading] = useState(false);
-  const [tab, setTab] = useState("events"),
-    [past, setPast] = useState(false),
+  const [tab] = useState("events");
+  const [past, setPast] = useState(false),
     [query, setQuery] = useState(""),
     [copied, setCopied] = useState(""),
     [copyError, setCopyError] = useState("");
-  const [pending, setPending] = useState(""),
-    [error, setError] = useState(""),
+  const [error, setError] = useState(""),
     [notice, setNotice] = useState("");
+  const [pending, setPending] = useState("");
   const [leaderboardExporting, setLeaderboardExporting] = useState<"xlsx" | "pdf" | null>(null);
+  const [media, setMedia] = useState({ video_url: home.video_url || "", poster_url: home.poster_url || "", gallery_urls: home.gallery_urls?.join("\n") || "" });
+  const [dirty, setDirty] = useState(false);
+  async function submit(action: string, data: Record<string, unknown>) {
+    setPending(action); setError(""); setNotice("");
+    try { await api(action, data); setNotice(t("اتحفظت", "Saved")); await onRefresh(); setDirty(false); }
+    catch (e) { setError(e instanceof Error ? e.message : t("لم تُحفظ التغييرات، حاول مجددًا", "Changes were not saved, please retry")); }
+    finally { setPending(""); }
+  }
   async function exportLeaderboard(format: "xlsx" | "pdf") {
     setLeaderboardExporting(format); setError("");
     try {
@@ -60,20 +64,6 @@ export function LeaderWorkspace({
     } catch (e) { setError(e instanceof Error ? e.message : "تعذّر تنزيل الجدول"); }
     finally { setLeaderboardExporting(null); }
   }
-  const [media, setMedia] = useState({
-      video_url: home.video_url || "",
-      poster_url: home.poster_url || "",
-      gallery_urls: home.gallery_urls?.join("\n") || "",
-    }),
-    [dirty, setDirty] = useState(false);
-  useEffect(() => {
-    if (!dirty)
-      setMedia({
-        video_url: home.video_url || "",
-        poster_url: home.poster_url || "",
-        gallery_urls: home.gallery_urls?.join("\n") || "",
-      });
-  }, [home, dirty]);
   useEffect(() => {
     if (!copied) return;
     const timer = setTimeout(() => setCopied(""), 2500);
@@ -151,38 +141,6 @@ export function LeaderWorkspace({
       );
     }
   }
-  async function submit(action: string, data: Record<string, unknown>) {
-    setPending(action);
-    setError("");
-    setNotice("");
-    try {
-      await api(action, data);
-
-      setNotice(t("اتحفظت", "Saved"));
-      try {
-        await onRefresh();
-        if (action === "home") setDirty(false);
-      } catch {
-        setNotice(
-          t(
-            "اتحفظت. حدّث الصفحة لعرض آخر نسخة.",
-            "Saved. Reload the page to see the latest version.",
-          ),
-        );
-      }
-    } catch (e) {
-      setError(
-        e instanceof Error
-          ? e.message
-          : t(
-              "لم تُحفظ التغييرات، حاول مجددًا",
-              "Changes were not saved, please retry",
-            ),
-      );
-    } finally {
-      setPending("");
-    }
-  }
   const Arrow = en ? ChevronRight : ChevronLeft;
   return (
     <section className="app-container leader-workspace">
@@ -194,60 +152,8 @@ export function LeaderWorkspace({
         </button>
       </div>
       <div
-        className="leader-tabs"
-        role="tablist"
-        aria-label={t("أدوات الإدارة", "Management tools")}
-      >
-        {[
-          ["events", t("الفعاليات", "Events")],
-          ["home", t("الصفحة الرئيسية", "Homepage")],
-        ].map(([id, label]) => (
-          <button
-            id={"leader-tab-" + id}
-            role="tab"
-            key={id}
-            aria-selected={tab === id}
-            aria-controls={"leader-page-" + id}
-            disabled={!!pending}
-            tabIndex={tab === id ? 0 : -1}
-            onClick={() => {
-              setTab(id);
-              setError("");
-              setNotice("");
-            }}
-            onKeyDown={(e) => {
-              if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) {
-                e.preventDefault();
-                const tabs = ["events", "home"];
-                const next =
-                  e.key === "Home"
-                    ? "events"
-                    : e.key === "End"
-                      ? "home"
-                      : tabs[
-                          (tabs.indexOf(tab) +
-                            (e.key === (en ? "ArrowRight" : "ArrowLeft")
-                              ? 1
-                              : -1) +
-                            tabs.length) %
-                            tabs.length
-                        ];
-                setTab(next);
-                setError("");
-                setNotice("");
-                document.getElementById("leader-tab-" + next)?.focus();
-              }
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      <div
         role="tabpanel"
         id="leader-page-events"
-        aria-labelledby="leader-tab-events"
-        hidden={tab !== "events"}
       >
         <div className="leader-event-tools">
           <div className="segmented">
