@@ -28,6 +28,7 @@ import { CommunityExperience } from "./design-preview";
 import { LeaderWorkspace } from "./leader-workspace";
 import { LeaderAttendance } from "./leader-attendance";
 import { cairoLocalToISO } from "@/lib/cairo-time";
+import { downloadLeaderboardPdf, downloadLeaderboardXlsx } from "@/lib/leaderboard-report";
 type EventItem = {
   id: string;
   title: string;
@@ -122,6 +123,7 @@ export default function App() {
     [leaderboardLoading, setLeaderboardLoading] = useState(true),
     [leaderboardFailed, setLeaderboardFailed] = useState(false),
     [leaderboardRetry, setLeaderboardRetry] = useState(0),
+    [leaderboardExporting, setLeaderboardExporting] = useState<"xlsx" | "pdf" | null>(null),
     [creating, setCreating] = useState(false),
     [uploadBusy, setUploadBusy] = useState(false),
     [qr, setQr] = useState(""),
@@ -133,6 +135,16 @@ export default function App() {
     [loadFailed, setLoadFailed] = useState(false),
     [past, setPast] = useState(false);
   const t = (ar: string, eng: string) => (en ? eng : ar);
+  async function exportLeaderboard(format: "xlsx" | "pdf") {
+    if (!me || me.profile.role !== "leader" || leaderboardExporting || !rows.length) return;
+    setLeaderboardExporting(format);
+    try {
+      if (format === "xlsx") await downloadLeaderboardXlsx(rows);
+      else downloadLeaderboardPdf(rows);
+    } finally {
+      setLeaderboardExporting(null);
+    }
+  }
   const initialized = useRef(false);
   const operationBusy = useRef(false);
   const dataRequest = useRef(0);
@@ -1113,7 +1125,19 @@ export default function App() {
           <section className="app-container narrow">
             <div className="page-heading">
               <h1>{t("المتصدرون", "Leaderboard")}</h1>
-              <Trophy size={32} />
+              <div className="leaderboard-heading-actions">
+                {me?.profile.role === "leader" && (
+                  <>
+                    <button className="outline" onClick={() => exportLeaderboard("xlsx")} disabled={!!leaderboardExporting || !rows.length}>
+                      <Download size={16} /> {leaderboardExporting === "xlsx" ? "جارٍ التحضير…" : "Excel"}
+                    </button>
+                    <button className="outline" onClick={() => exportLeaderboard("pdf")} disabled={!!leaderboardExporting || !rows.length}>
+                      <Download size={16} /> {leaderboardExporting === "pdf" ? "جارٍ التحضير…" : "PDF"}
+                    </button>
+                  </>
+                )}
+                <Trophy size={32} />
+              </div>
             </div>
             <div className="leaderboard">
               {leaderboardLoading ? (

@@ -9,13 +9,11 @@ import {
   ChevronRight,
   Check,
   RefreshCw,
-  Download,
   LoaderCircle,
 } from "lucide-react";
 import type { LeaderApi, LeaderEvent } from "./leader-attendance";
 import "./leader.css";
 import { EventArtwork } from "./event-artwork";
-import { downloadLeaderboardPdf, downloadLeaderboardXlsx } from "@/lib/leaderboard-report";
 import { ImageUpload, ImagePreview } from "./image-upload";
 type Home = { video_url?: string; poster_url?: string; gallery_urls?: string[] };
 export function LeaderWorkspace({
@@ -45,7 +43,6 @@ export function LeaderWorkspace({
   const [error, setError] = useState(""),
     [notice, setNotice] = useState("");
   const [pending, setPending] = useState("");
-  const [leaderboardExporting, setLeaderboardExporting] = useState<"xlsx" | "pdf" | null>(null);
   const [media, setMedia] = useState({ video_url: home.video_url || "", poster_url: home.poster_url || "", gallery_urls: home.gallery_urls?.join("\n") || "" });
   const [dirty, setDirty] = useState(false);
   async function submit(action: string, data: Record<string, unknown>) {
@@ -53,16 +50,6 @@ export function LeaderWorkspace({
     try { await api(action, data); setNotice(t("اتحفظت", "Saved")); await onRefresh(); setDirty(false); }
     catch (e) { setError(e instanceof Error ? e.message : t("لم تُحفظ التغييرات، حاول مجددًا", "Changes were not saved, please retry")); }
     finally { setPending(""); }
-  }
-  async function exportLeaderboard(format: "xlsx" | "pdf") {
-    setLeaderboardExporting(format); setError("");
-    try {
-      const result = await api("leaderboard");
-      if (format === "xlsx") await downloadLeaderboardXlsx(result.rows);
-      else downloadLeaderboardPdf(result.rows);
-      setNotice(t("اتحمّل جدول المتصدرين", "Leaderboard downloaded"));
-    } catch (e) { setError(e instanceof Error ? e.message : "تعذّر تنزيل الجدول"); }
-    finally { setLeaderboardExporting(null); }
   }
   useEffect(() => {
     if (!copied) return;
@@ -188,12 +175,6 @@ export function LeaderWorkspace({
           >
             <RefreshCw size={16} className={statsLoading ? "spin" : ""} />
             {statsLoading ? "جارٍ تحديث الأعداد…" : "تحديث الأعداد"}
-          </button>
-          <button className="outline" onClick={() => exportLeaderboard("xlsx")} disabled={!!leaderboardExporting}>
-            <Download size={16} /> {leaderboardExporting === "xlsx" ? "جارٍ التحضير…" : "المتصدرون Excel"}
-          </button>
-          <button className="outline" onClick={() => exportLeaderboard("pdf")} disabled={!!leaderboardExporting}>
-            <Download size={16} /> {leaderboardExporting === "pdf" ? "جارٍ التحضير…" : "المتصدرون PDF"}
           </button>
           {statsError && (
             <p role="alert" className="leader-help">
